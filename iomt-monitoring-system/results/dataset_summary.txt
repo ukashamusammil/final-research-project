@@ -1,5 +1,0 @@
-Dataset Shape: (100000, 47)
-Total Samples: 100,000
-Total Features: 47
-
-Columns: timestamp, alert_id, device_id, device_type, sensor_type, ward, criticality_tier, life_support, src_ip, dst_ip, src_port, dst_port, protocol, packet_size, packet_rate, packets_per_sec, unique_ports, failed_connections, bytes_sent, bytes_received, flow_duration, hour_of_day, day_of_week, is_night, is_weekend, attack_type, attack_severity, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, fall_detected, heart_rate_bpm, r_peak_detected, ecg_signal_quality, body_temp_celsius, spo2_percentage, ppg_signal_quality, attack_description, campaign_id, priority_label, group_id, network_anomaly_score, behavioral_anomaly_score, time_anomaly_score
