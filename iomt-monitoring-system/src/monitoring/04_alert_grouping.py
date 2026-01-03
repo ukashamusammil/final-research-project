@@ -60,7 +60,6 @@ def analyze_alert_grouping():
         
         # Group by attack type
         print("\n📊 Groups by Attack Type:")
-        group_attack = grouped.groupby('group_id')['attack_type_encoded'].first()
         
         # Load encoder to decode
         import pickle
