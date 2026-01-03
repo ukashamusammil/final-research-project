@@ -4,6 +4,7 @@ import json
 from inference_engine import InferenceEngine
 from modules.containment import IsolationManager
 from modules.redaction import PHIRedactor
+from modules.wazuh_connector import WazuhConnector
 
 # Configure Tamper-Evident Logging
 logging.basicConfig(
@@ -24,9 +25,48 @@ def main():
     
     logging.info("ARS System Startup. Models loaded. Waiting for events...")
     
-    # 2. Simulated Event Stream (In real life, this comes from SIEM/Wazuh)
-    # We simulate a "Threat Scenario"
-    incoming_events = [
+    # 2. Configure Event Source
+    # Check if user wants to use Live Wazuh Data or Simulation
+    print("\n[CONFIG] Select Operation Mode:")
+    print("   [1] Simulation Mode (Pre-defined scenarios)")
+    print("   [2] Live Wazuh Integration (Real-time API)")
+    mode = input("Enter selection [1/2]: ").strip()
+
+    event_stream = []
+    
+    if mode == "2":
+        wazuh_ip = "20.239.185.152" # Default from project
+        wazuh_user = input("Enter Wazuh Username [wazuh-wui]: ").strip() or "wazuh-wui"
+        wazuh_pass = input("Enter Wazuh Password: ").strip()
+        
+        connector = WazuhConnector(wazuh_ip, wazuh_user, wazuh_pass)
+        if connector.authenticate():
+            print("[SYS_EVENT] Connected to Wazuh Manager. Listening for alerts...")
+            # For this simple loop, we'll wrap get_alerts in a generator or just loop
+            # Here we define a simple generator for the main loop
+            def live_stream():
+                while True:
+                    alerts = connector.get_alerts()
+                    for alert in alerts:
+                        # Convert Wazuh alert format to AR System format
+                        # This is a critical mapping step.
+                        # Assuming 'alert' has 'agent' and 'rule' fields
+                        yield {
+                            "device_ip": alert.get('agent', {}).get('ip', '0.0.0.0'),
+                            "heart_rate": 0, # Wazuh doesn't give vitals, we imply them or fetch elsewhere?
+                            "spo2": 0,      # For security alerts, vitals might not be relevant or we mock them
+                            "anomaly_score": 1.0, # Alerts are high confidence
+                            "log": alert.get('full_log') or alert.get('rule', {}).get('description', 'Unknown Alert')
+                        }
+                    time.sleep(2)
+            event_stream = live_stream()
+        else:
+            print("[ERROR] Authentication failed. Falling back to Simulation.")
+            mode = "1"
+
+    if mode != "2": 
+        # Simulation Mode
+        event_stream = [
         # Event 1: Normal Heartbeat
         {"device_ip": "192.168.1.50", "heart_rate": 75, "spo2": 98, "anomaly_score": 0.1, "log": "Patient P-123 stable."},
         # Event 2: Malware Attack Detected (High Anomaly)
@@ -55,7 +95,7 @@ def main():
     quarantined_devices = set()   # Permanent Quarantine
 
     # 3. Processing Loop
-    for event in incoming_events:
+    for event in event_stream:
         device_ip = event['device_ip']
         
         # Skip processing if device is already in Permanent Quarantine
