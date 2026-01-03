@@ -32,46 +32,46 @@ class WazuhConnector:
             print(f"[WAZUH_CONN] Connection Error: {e}")
             return False
 
-    def get_alerts(self):
-        """Fetches the latest security alerts."""
+    def get_monitoring_data(self):
+        """Fetches active agents and treats them as live heartbeat events."""
         if not self.token:
             if not self.authenticate():
                 return []
 
-        # Query for recent high-severity alerts (Level 3+)
-        # We look back 30 seconds to simulate "real-time"
-        # In a real daemon, we would track the last fetched timestamp
         try:
-            url = f"{self.base_url}/security/alerts"
+            # We poll the 'agents' endpoint to see who is active
+            # This serves as a "Heartbeat" ingestion from Wazuh
+            url = f"{self.base_url}/agents"
             params = {
-                'level': '3',
-                'limit': 5,
-                'sort': '-timestamp'
+                'status': 'active',
+                'select': 'id,ip,name,os,status'
             }
             
-            # Note: This is an example endpoint. The actual Wazuh API endpoint 
-            # for querying alerts depends on the version and indexer (often OpenSearch/Elastic).
-            # BUT, standard Wazuh API doesn't expose a simple "get recent alerts" 
-            # in the core endpoints easily without using the Indexer API.
-            #
-            # ALTERNATIVE: Use the 'GET /manager/stats/hourly' or similar? No.
-            #
-            # PRACTICAL WORKAROUND for this project context:
-            # Since accessing the Indexer API (port 9200) is complex (certs etc),
-            # and the standard API is for management, a common pattern for *simple* integration
-            # is actually reading the `alerts.json` file if local, or using proper forwarded logs.
-            #
-            # However, prompt asked for API. Let's try the /manager/logs endpoint if available,
-            # or fallback to a Mock implementation if the API is too complex for this quick setup.
-            # 
-            # Let's try to be smart: usage of the filtered alerts endpoint is best.
-            # If that fails, we might need to rely on the active response scripts.
+            response = requests.get(url, headers=self.headers, params=params, verify=False, timeout=5)
             
-            # Let's stick to the plan: Poll API.
-            # Using a mock-compatible structure for the student project if real API fails.
-            pass 
+            if response.status_code == 200:
+                data = response.json().get('data', {}).get('affected_items', [])
+                events = []
+                for agent in data:
+                    # Create a standardized event for the AR System
+                    events.append({
+                        "device_ip": agent.get('ip', '0.0.0.0'),
+                        "agent_id": agent.get('id'),
+                        "log": f"Wazuh Agent '{agent.get('name')}' is Active. OS: {agent.get('os', {}).get('name', 'Unknown')}",
+                        "anomaly_score": 0.0  # Default to Safe/Monitor for plain heartbeats
+                    })
+                return events
+            
+            elif response.status_code == 401:
+                print("[WAZUH_CONN] Token expired. Refreshing...")
+                self.authenticate()
+                return []
+            else:
+                logging.error(f"Wazuh API Error: {response.text}")
+                return []
+                
         except Exception as e:
-            logging.error(f"Failed to fetch alerts: {e}")
+            logging.error(f"Failed to fetch Wazuh data: {e}")
             return []
 
     def mock_stream(self):

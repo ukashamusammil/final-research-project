@@ -14,6 +14,36 @@ logging.basicConfig(
     filemode='a'
 )
 
+
+
+# JSON Logger for Wazuh Ingestion
+import os
+LOG_DIR = os.path.join(os.environ['ProgramData'], "AR_System")
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+JSON_LOG_FILE = os.path.join(LOG_DIR, "ars_events.json")
+
+def log_to_wazuh_json(event_type, decision, ip, score, details):
+    """
+    Writes a structured JSON log that Wazuh agent can pick up natively.
+    """
+    log_entry = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()), # UTC time to avoid timezone conflicts
+        "app_name": "ARS_Defense_Core",
+        "event_type": event_type,  # e.g., THREAT_DETECTED, PRIVACY_ALERT
+        "decision": decision,      # e.g., ISOLATE, MONITOR
+        "src_ip": ip,
+        "anomaly_score": score,
+        "details": details
+    }
+    
+    # Write to a dedicated JSON log file (simulating a 'log' for the agent to watch)
+    try:
+        with open(JSON_LOG_FILE, "a") as f:
+            f.write(json.dumps(log_entry) + "\n")
+    except Exception as e:
+        print(f"[ERROR] Could not write to log file: {e}")
+
 def main():
     print("[SYS_EVENT] STARTING AUTOMATED RESPONSE SYSTEM (ARS) - DEFENSE CORE")
     print("=========================================================")
@@ -45,20 +75,35 @@ def main():
             # For this simple loop, we'll wrap get_alerts in a generator or just loop
             # Here we define a simple generator for the main loop
             def live_stream():
+                # Hybrid Mode:
+                # 1. We start by showing steady 'Heartbeats' from the Real Wazuh Agent.
+                # 2. Key: We inject the 'Simulated Attack' events after a few seconds
+                #    so the user can see the AR System react to a threat while connected.
+                
+                simulated_threats = [
+                    # Event 1: Malware Attack (High Anomaly)
+                    {"device_ip": "192.168.1.50", "heart_rate": 78, "spo2": 97, "anomaly_score": 0.95, "log": "Malware detected: Unauthorized process on port 22."},
+                    # Event 2: Ransomware Attack (Critical)
+                    {"device_ip": "192.168.1.99", "heart_rate": 120, "spo2": 85, "anomaly_score": 0.99, "log": "Ransomware active: File encryption started."},
+                ]
+                
+                threat_index = 0
+                tick = 0
+                
                 while True:
-                    alerts = connector.get_alerts()
-                    for alert in alerts:
-                        # Convert Wazuh alert format to AR System format
-                        # This is a critical mapping step.
-                        # Assuming 'alert' has 'agent' and 'rule' fields
-                        yield {
-                            "device_ip": alert.get('agent', {}).get('ip', '0.0.0.0'),
-                            "heart_rate": 0, # Wazuh doesn't give vitals, we imply them or fetch elsewhere?
-                            "spo2": 0,      # For security alerts, vitals might not be relevant or we mock them
-                            "anomaly_score": 1.0, # Alerts are high confidence
-                            "log": alert.get('full_log') or alert.get('rule', {}).get('description', 'Unknown Alert')
-                        }
-                    time.sleep(2)
+                    # A. Fetch Real-time Agent Status (Heartbeat)
+                    events = connector.get_monitoring_data()
+                    for event in events:
+                        yield event
+                    
+                    # B. Inject Simulated Threat? (Every 3rd poll, roughly 15s)
+                    tick += 1
+                    if tick % 3 == 0:
+                        print(f"\n[HYBRID_DEMO] Injecting Simulated High-Severity Threat...")
+                        yield simulated_threats[threat_index]
+                        threat_index = (threat_index + 1) % len(simulated_threats)
+                        
+                    time.sleep(5)
             event_stream = live_stream()
         else:
             print("[ERROR] Authentication failed. Falling back to Simulation.")
@@ -97,6 +142,7 @@ def main():
     # 3. Processing Loop
     for event in event_stream:
         device_ip = event['device_ip']
+        anomaly_score = event['anomaly_score']
         
         # Skip processing if device is already in Permanent Quarantine
         if device_ip in quarantined_devices:
@@ -125,6 +171,7 @@ def main():
                 isolated_devices[device_ip] = time.time() # Store timestamp
                 logging.warning(f"ISOLATION TRIGGERED for {device_ip}")
                 print("      [SYS_EVENT] Deep Monitoring Active... Checking for Persistence...")
+                log_to_wazuh_json("THREAT_RESPONSE", "ISOLATE", device_ip, anomaly_score, "High Threat Detected. Isolation Triggered.")
 
              # Case 2: Threat Persists while Isolated -> Move to QUARANTINE
              elif device_ip in isolated_devices:
@@ -133,9 +180,11 @@ def main():
                 quarantined_devices.add(device_ip)
                 del isolated_devices[device_ip] # Remove from temp
                 logging.critical(f"DEVICE {device_ip} QUARANTINED PERMANENTLY.")
+                log_to_wazuh_json("THREAT_ESCALATION", "QUARANTINE", device_ip, anomaly_score, "Threat persisted. Device permanently quarantined.")
             
         elif action == "MONITOR":
-             print("   [SYS_EVENT] Investigating... (Metrics suspicious but not critical)")
+             print(f"   [SYS_EVENT] Investigating... (Metrics suspicious but not critical)")
+             log_to_wazuh_json("THREAT_ANALYSIS", "MONITOR", device_ip, anomaly_score, "Suspicious activity. Monitoring intensified.")
         
         elif action == "NO_ACTION":
             # Check if we need to Rollback (False Positive Detected)
