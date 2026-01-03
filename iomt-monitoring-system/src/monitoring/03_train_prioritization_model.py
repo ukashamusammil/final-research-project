@@ -57,7 +57,6 @@ def train_alert_prioritization_model():
     # Make predictions
     print("\n🔮 Making predictions on test set...")
     y_pred = model.predict(X_test)
-    y_pred_proba = model.predict_proba(X_test)
     print("✅ Predictions complete!")
     
     # Evaluate
