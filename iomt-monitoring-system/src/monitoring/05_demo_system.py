@@ -7,7 +7,6 @@ import pandas as pd
 import pickle
 import time
 from datetime import datetime
-import random
 
 def load_model():
     """Load trained model and encoders"""
