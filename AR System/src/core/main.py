@@ -1,6 +1,9 @@
 import time
 import logging
+import warnings
+warnings.filterwarnings("ignore") # Suppress sklearn/joblib warnings
 import json
+import random
 from inference_engine import InferenceEngine
 from modules.containment import IsolationManager
 from modules.redaction import PHIRedactor
@@ -28,13 +31,14 @@ def log_to_wazuh_json(event_type, decision, ip, score, details):
     Writes a structured JSON log that Wazuh agent can pick up natively.
     """
     log_entry = {
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()), # UTC time to avoid timezone conflicts
+        # "timestamp": REMOVED - Letting Wazuh Server assign arrival time (fixes 2026 vs 2025 mismatch)
         "app_name": "ARS_Defense_Core",
         "event_type": event_type,  # e.g., THREAT_DETECTED, PRIVACY_ALERT
         "decision": decision,      # e.g., ISOLATE, MONITOR
         "src_ip": ip,
         "anomaly_score": score,
-        "details": details
+        "details": details,
+        "top_features": ["Heart_Rate", "SpO2"] if event_type == "THREAT_DETECTED" else ["None"]
     }
     
     # Write to a dedicated JSON log file (simulating a 'log' for the agent to watch)
@@ -60,11 +64,49 @@ def main():
     print("\n[CONFIG] Select Operation Mode:")
     print("   [1] Simulation Mode (Pre-defined scenarios)")
     print("   [2] Live Wazuh Integration (Real-time API)")
-    mode = input("Enter selection [1/2]: ").strip()
+    print("   [3] Full Dataset Replay (High Fidelity CSV)")
+    mode = input("Enter selection [1/2/3]: ").strip()
 
     event_stream = []
     
-    if mode == "2":
+    if mode == "3":
+        import csv
+        # Path to data folder (up 2 levels from src/core)
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        csv_path = os.path.join(base_dir, 'data', 'ars_high_fidelity_training.csv')
+        
+        print(f"[INIT] Loading High Fidelity Dataset from: {csv_path}")
+        
+        try:
+            with open(csv_path, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # Construct Log Message (Synthesized)
+                    log_msg = f"Vitals Monitor: HR={row['heart_rate']} SPO2={row['spo2']} SYS_BP={row['sys_bp']}"
+                    
+                    # Randomly inject PHI for testing Privacy Module
+                    if random.random() < 0.05: # 5% chance
+                        log_msg += " | Patient ID: P-999 (Confidential)"
+
+                    event = {
+                        "device_ip": f"192.168.1.{random.randint(50, 200)}",
+                        "heart_rate": int(row['heart_rate']),
+                        "spo2": int(row['spo2']),
+                        "sys_bp": int(row['sys_bp']),
+                        "network_latency": int(row['network_latency']),
+                        "packet_size": int(row['packet_size']),
+                        "anomaly_score": float(row['anomaly_score']),
+                        "log": log_msg,
+                        "timestamp": time.time()  # Internal use only (removed before sending)
+                    }
+                    event_stream.append(event)
+            print(f"[INIT] Successfully loaded {len(event_stream)} events for replay.")
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to load CSV: {e}")
+            event_stream = []
+
+    elif mode == "2":
         wazuh_ip = "20.239.185.152" # Default from project
         wazuh_user = input("Enter Wazuh Username [wazuh-wui]: ").strip() or "wazuh-wui"
         wazuh_pass = input("Enter Wazuh Password: ").strip()
@@ -109,7 +151,8 @@ def main():
             print("[ERROR] Authentication failed. Falling back to Simulation.")
             mode = "1"
 
-    if mode != "2": 
+    else:
+        # Simulation Mode (Default or Mode 1)
         # Simulation Mode
         event_stream = [
         # Event 1: Normal Heartbeat
@@ -150,7 +193,12 @@ def main():
             continue
 
         print(f"\n[INGEST] RECEIVED DATA: IP={device_ip} | Score={event['anomaly_score']}")
-        time.sleep(1)
+        
+        # Speed up simulation for CSV Replay (Mode 3)
+        if mode == "3":
+            time.sleep(0.1) # Fast replay
+        else:
+            time.sleep(1)   # Normal demo speed
         
         # A. PRIVACY CHECK (PHI Redaction)
         if 'log' in event and phi_guard.has_regex_phi(event['log']):
