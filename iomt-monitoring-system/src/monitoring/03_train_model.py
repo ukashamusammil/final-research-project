@@ -13,22 +13,22 @@ import pickle
 import os
 
 print("="*75)
-print("🤖 TRAINING ALERT PRIORITIZATION MODEL")
+print(" TRAINING ALERT PRIORITIZATION MODEL")
 print("="*75)
 
 # Load processed data
-print("\n🔄 Loading processed data...")
+print("\n Loading processed data...")
 X_train = pd.read_csv('../../data/processed/X_train.csv')
 X_test = pd.read_csv('../../data/processed/X_test.csv')
 y_train = pd.read_csv('../../data/processed/y_train.csv').values.ravel()
 y_test = pd.read_csv('../../data/processed/y_test.csv').values.ravel()
 
-print(f"   ✅ Training samples: {len(X_train):,}")
-print(f"   ✅ Testing samples: {len(X_test):,}")
-print(f"   ✅ Features: {len(X_train.columns)}")
+print(f" Training samples: {len(X_train):,}")
+print(f" Testing samples: {len(X_test):,}")
+print(f" Features: {len(X_train.columns)}")
 
 # Create Random Forest model
-print("\n🔄 Creating Random Forest Classifier...")
+print("\n Creating Random Forest Classifier...")
 model = RandomForestClassifier(
     n_estimators=100,
     max_depth=20,
@@ -40,25 +40,25 @@ model = RandomForestClassifier(
 )
 
 # Train model
-print("\n🚀 Training model...")
+print("\n Training model...")
 model.fit(X_train, y_train)
-print("   ✅ Training complete!")
+print(" Training complete!")
 
 # Make predictions
-print("\n🔮 Making predictions on test set...")
+print("\n Making predictions on test set...")
 y_pred = model.predict(X_test)
 y_pred_proba = model.predict_proba(X_test)
 
 # Calculate accuracy
 accuracy = accuracy_score(y_test, y_pred)
-print(f"\n🎯 Test Accuracy: {accuracy*100:.2f}%")
+print(f"\n Test Accuracy: {accuracy*100:.2f}%")
 
 # Classification report
-print("\n📊 Classification Report:")
+print("\n Classification Report:")
 print(classification_report(y_test, y_pred))
 
 # Confusion matrix
-print("\n📊 Confusion Matrix:")
+print("\n Confusion Matrix:")
 cm = confusion_matrix(y_test, y_pred, labels=['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'])
 print(cm)
 
@@ -72,7 +72,7 @@ plt.ylabel('Actual')
 plt.xlabel('Predicted')
 plt.tight_layout()
 plt.savefig('../../results/04_confusion_matrix.png', dpi=300)
-print("\n   ✅ Saved: results/04_confusion_matrix.png")
+print("\n Saved: results/04_confusion_matrix.png")
 
 # Feature importance
 feature_importance = pd.DataFrame({
@@ -80,7 +80,7 @@ feature_importance = pd.DataFrame({
     'importance': model.feature_importances_
 }).sort_values('importance', ascending=False)
 
-print("\n📊 Top 10 Most Important Features:")
+print("\n Top 10 Most Important Features:")
 print(feature_importance.head(10).to_string(index=False))
 
 # Visualize feature importance
@@ -92,13 +92,13 @@ plt.ylabel('Feature')
 plt.gca().invert_yaxis()
 plt.tight_layout()
 plt.savefig('../../results/05_feature_importance.png', dpi=300)
-print("   ✅ Saved: results/05_feature_importance.png")
+print(" Saved: results/05_feature_importance.png")
 
 # Save model
-print("\n💾 Saving trained model...")
+print("\n Saving trained model...")
 with open('../../models/alert_prioritization_model.pkl', 'wb') as f:
     pickle.dump(model, f)
-print("   ✅ Saved: models/alert_prioritization_model.pkl")
+print(" Saved: models/alert_prioritization_model.pkl")
 
 # Save metrics
 metrics = {
@@ -110,11 +110,11 @@ metrics = {
 
 with open('../../models/model_metrics.pkl', 'wb') as f:
     pickle.dump(metrics, f)
-print("   ✅ Saved: models/model_metrics.pkl")
+print(" Saved: models/model_metrics.pkl")
 
 print("\n" + "="*75)
-print("✅ MODEL TRAINING COMPLETE!")
+print("MODEL TRAINING COMPLETE!")
 print("="*75)
-print(f"\n🎯 Final Accuracy: {accuracy*100:.2f}%")
-print("📁 Check 'results' folder for visualizations!")
-print("📁 Check 'models' folder for saved model!\n")
+print(f"\n Final Accuracy: {accuracy*100:.2f}%")
+print("Check 'results' folder for visualizations!")
+print("Check 'models' folder for saved model!\n")

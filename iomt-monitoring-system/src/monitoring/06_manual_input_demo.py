@@ -41,9 +41,9 @@ def get_choice(prompt, max_value):
             if 1 <= choice <= max_value:
                 return choice - 1  # Convert to 0-based index
             else:
-                print(f"{Colors.CRITICAL}❌ Please enter a number between 1 and {max_value}{Colors.RESET}")
+                print(f"{Colors.CRITICAL} Please enter a number between 1 and {max_value}{Colors.RESET}")
         except ValueError:
-            print(f"{Colors.CRITICAL}❌ Please enter a valid number{Colors.RESET}")
+            print(f"{Colors.CRITICAL} Please enter a valid number{Colors.RESET}")
 
 def get_number(prompt, min_val, max_val):
     """Get valid number within range"""
@@ -53,34 +53,34 @@ def get_number(prompt, min_val, max_val):
             if min_val <= value <= max_val:
                 return value
             else:
-                print(f"{Colors.CRITICAL}❌ Please enter a value between {min_val} and {max_val}{Colors.RESET}")
+                print(f"{Colors.CRITICAL} Please enter a value between {min_val} and {max_val}{Colors.RESET}")
         except ValueError:
-            print(f"{Colors.CRITICAL}❌ Please enter a valid number{Colors.RESET}")
+            print(f"{Colors.CRITICAL} Please enter a valid number{Colors.RESET}")
 
 def load_model_and_encoders():
     """Load trained model and label encoders"""
-    print_header("🔄 LOADING SYSTEM")
+    print_header(" LOADING SYSTEM")
     
     try:
         # Load model
         with open('../../models/alert_prioritization_model.pkl', 'rb') as f:
             model = pickle.load(f)
-        print("   ✅ Model loaded")
+        print(" Model loaded")
         
         # Load encoders
         with open('../../models/label_encoders.pkl', 'rb') as f:
             encoders = pickle.load(f)
-        print("   ✅ Encoders loaded")
+        print(" Encoders loaded")
         
         # Load feature names
         with open('../../models/feature_names.pkl', 'rb') as f:
             feature_names = pickle.load(f)
-        print("   ✅ Feature names loaded")
+        print(" Feature names loaded")
         
         return model, encoders, feature_names
     
     except FileNotFoundError:
-        print(f"\n{Colors.CRITICAL}❌ Error: Model files not found!{Colors.RESET}")
+        print(f"\n{Colors.CRITICAL} Error: Model files not found!{Colors.RESET}")
         print("Please run '03_train_model.py' first to train the model.")
         exit(1)
 
@@ -169,7 +169,7 @@ def collect_device_info(encoders):
 def collect_attack_info(encoders):
     """Collect attack/traffic information"""
     
-    print_header("🚨 ATTACK/TRAFFIC INFORMATION")
+    print_header(" ATTACK/TRAFFIC INFORMATION")
     
     # Attack Type
     attack_types = [
@@ -214,7 +214,7 @@ def collect_attack_info(encoders):
             attack_severity = default_severity
     
     # Network characteristics
-    print_header("📊 NETWORK CHARACTERISTICS")
+    print_header(" NETWORK CHARACTERISTICS")
     
     if attack_type != 'normal':
         print("Typical attack values:")
@@ -338,7 +338,7 @@ def display_prediction(device_info, attack_info, priority, confidence, prob_dict
     print(f"{color}{'='*75}{Colors.RESET}")
     
     # Device Summary
-    print(f"\n{Colors.BOLD}📱 DEVICE:{Colors.RESET}")
+    print(f"\n{Colors.BOLD} DEVICE:{Colors.RESET}")
     print(f"   Type:          {device_info['device_type']}")
     print(f"   Location:      {device_info['ward']}")
     print(f"   Protocol:      {device_info['protocol']}")
@@ -349,22 +349,22 @@ def display_prediction(device_info, attack_info, priority, confidence, prob_dict
         print()
     
     if device_info['life_support'] == 1:
-        print(f"   {color}{Colors.BOLD}⚕️  LIFE SUPPORT DEVICE ⚕️{Colors.RESET}")
+        print(f"   {color}{Colors.BOLD}  LIFE SUPPORT DEVICE {Colors.RESET}")
     
     # Attack Summary
-    print(f"\n{Colors.BOLD}🚨 THREAT:{Colors.RESET}")
+    print(f"\n{Colors.BOLD} THREAT:{Colors.RESET}")
     print(f"   Attack Type:   {attack_info['attack_type']}")
     print(f"   Severity:      {attack_info['attack_severity']}/45")
     print(f"   Packet Rate:   {attack_info['packet_rate']} packets/min")
     print(f"   Failed Conns:  {attack_info['failed_connections']}")
     
     # Prediction
-    print(f"\n{Colors.BOLD}🎯 PREDICTION:{Colors.RESET}")
+    print(f"\n{Colors.BOLD} PREDICTION:{Colors.RESET}")
     print(f"   {color}{Colors.BOLD}Priority:       {priority}{Colors.RESET}")
     print(f"   Confidence:    {confidence:.1f}%")
     
     # Probability distribution
-    print(f"\n{Colors.BOLD}📊 PROBABILITY DISTRIBUTION:{Colors.RESET}")
+    print(f"\n{Colors.BOLD} PROBABILITY DISTRIBUTION:{Colors.RESET}")
     for cls in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
         if cls in prob_dict:
             prob = prob_dict[cls] * 100
@@ -373,7 +373,7 @@ def display_prediction(device_info, attack_info, priority, confidence, prob_dict
             print(f"   {cls:10} : {prob:5.2f}% {bar}")
     
     # Recommended Action
-    print(f"\n{Colors.BOLD}💡 RECOMMENDED ACTION:{Colors.RESET}")
+    print(f"\n{Colors.BOLD} RECOMMENDED ACTION:{Colors.RESET}")
     if priority == 'CRITICAL':
         print(f"   {color}• IMMEDIATE isolation of device{Colors.RESET}")
         print(f"   {color}• Alert security team AND clinical staff{Colors.RESET}")
@@ -401,7 +401,7 @@ def display_prediction(device_info, attack_info, priority, confidence, prob_dict
 def main():
     """Main interactive loop"""
     
-    print_header("🏥 ESP32 IoMT ALERT PRIORITIZATION - MANUAL INPUT DEMO")
+    print_header(" ESP32 IoMT ALERT PRIORITIZATION - MANUAL INPUT DEMO")
     
     print(f"\n{Colors.BOLD}This demo allows you to manually enter device and attack details")
     print(f"to see real-time priority predictions from your trained model.{Colors.RESET}\n")
@@ -415,7 +415,7 @@ def main():
         attack_info = collect_attack_info(encoders)
         
         # Make prediction
-        print("\n🔄 Processing alert...")
+        print("\n Processing alert...")
         priority, confidence, prob_dict = make_prediction(
             model, feature_names, device_info, attack_info
         )
@@ -427,10 +427,10 @@ def main():
         continue_choice = input(f"{Colors.BOLD}Would you like to test another alert? (yes/no): {Colors.RESET}").strip().lower()
         
         if continue_choice not in ['yes', 'y']:
-            print_header("✅ Thank you for using the ESP32 IoMT Alert Prioritization System!")
-            print(f"\n📊 Demo completed successfully!")
-            print(f"🎯 Model made accurate predictions based on clinical impact")
-            print(f"🏥 Patient safety prioritized in all decisions\n")
+            print_header(" Thank you for using the ESP32 IoMT Alert Prioritization System!")
+            print(f"\n Demo completed successfully!")
+            print(f" Model made accurate predictions based on clinical impact")
+            print(f" Patient safety prioritized in all decisions\n")
             break
 
 
@@ -438,8 +438,8 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print(f"\n\n{Colors.CRITICAL}⚠️  Demo interrupted by user{Colors.RESET}")
-        print("✅ System shut down safely\n")
+        print(f"\n\n{Colors.CRITICAL}  Demo interrupted by user{Colors.RESET}")
+        print(" System shut down safely\n")
     except Exception as e:
-        print(f"\n\n{Colors.CRITICAL}❌ Error: {e}{Colors.RESET}")
+        print(f"\n\n{Colors.CRITICAL} Error: {e}{Colors.RESET}")
         print("Please ensure all required files are in place\n")

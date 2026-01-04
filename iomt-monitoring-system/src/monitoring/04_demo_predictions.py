@@ -19,11 +19,11 @@ COLORS = {
 }
 
 print("="*75)
-print("🎮 ALERT PRIORITIZATION DEMO")
+print(" ALERT PRIORITIZATION DEMO")
 print("="*75)
 
 # Load model and test data
-print("\n🔄 Loading model and test data...")
+print("\n Loading model and test data...")
 with open('../../models/alert_prioritization_model.pkl', 'rb') as f:
     model = pickle.load(f)
 
@@ -33,11 +33,11 @@ y_test = pd.read_csv('../../data/processed/y_test.csv').values.ravel()
 # Load original data for context
 df = pd.read_csv('../../data/raw/esp32_iomt_dataset_realistic.csv')
 
-print("   ✅ Model loaded")
-print("   ✅ Test data loaded")
+print(" Model loaded")
+print(" Test data loaded")
 
 # Select 10 random samples
-print("\n🎲 Testing 10 random alerts...\n")
+print("\n Testing 10 random alerts...\n")
 
 indices = random.sample(range(len(X_test)), 10)
 
@@ -65,10 +65,10 @@ for i, idx in enumerate(indices, 1):
     print(f"   {color}Predicted Priority: {prediction}{COLORS['RESET']}")
     print(f"   Actual Priority: {actual}")
     print(f"   Confidence: {confidence:.1f}%")
-    print(f"   Match: {'✅ Correct' if prediction == actual else '❌ Incorrect'}")
+    print(f"   Match: {' Correct' if prediction == actual else '❌ Incorrect'}")
     print()
 
 print("="*75)
-print("✅ DEMO COMPLETE!")
+print(" DEMO COMPLETE!")
 print("="*75)
-print("\n🎯 Model is working and making predictions!\n")
+print("\n Model is working and making predictions!\n")

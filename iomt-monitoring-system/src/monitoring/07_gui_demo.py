@@ -49,7 +49,7 @@ class AlertPrioritizationGUI:
             with open('../../models/feature_names.pkl', 'rb') as f:
                 self.feature_names = pickle.load(f)
             
-            print("✅ Model and encoders loaded successfully")
+            print("Model and encoders loaded successfully")
         
         except FileNotFoundError:
             messagebox.showerror("Error", "Model files not found!\nPlease run 03_train_model.py first.")
@@ -62,7 +62,7 @@ class AlertPrioritizationGUI:
         
         title = tk.Label(
             header_frame,
-            text="🏥 ESP32 IoMT Alert Prioritization System",
+            text=" ESP32 IoMT Alert Prioritization System",
             font=('Arial', 20, 'bold'),
             bg=self.colors['header'],
             fg='white',
@@ -88,7 +88,7 @@ class AlertPrioritizationGUI:
         # Left column - Device Info
         left_frame = tk.LabelFrame(
             input_container,
-            text="📱 Device Information",
+            text=" Device Information",
             font=('Arial', 12, 'bold'),
             bg='white',
             fg=self.colors['header'],
@@ -142,7 +142,7 @@ class AlertPrioritizationGUI:
         # Right column - Attack Info
         right_frame = tk.LabelFrame(
             input_container,
-            text="🚨 Attack Information",
+            text=" Attack Information",
             font=('Arial', 12, 'bold'),
             bg='white',
             fg=self.colors['header'],
@@ -196,7 +196,7 @@ class AlertPrioritizationGUI:
         # Analyze Button
         analyze_btn = tk.Button(
             input_container,
-            text="🎯 ANALYZE ALERT",
+            text=" ANALYZE ALERT",
             command=self.analyze_alert,
             font=('Arial', 14, 'bold'),
             bg=self.colors['button'],
@@ -212,7 +212,7 @@ class AlertPrioritizationGUI:
         """Create result display section"""
         result_frame = tk.LabelFrame(
             self.root,
-            text="🎯 Prediction Results",
+            text=" Prediction Results",
             font=('Arial', 12, 'bold'),
             bg='white',
             fg=self.colors['header'],
@@ -416,16 +416,16 @@ class AlertPrioritizationGUI:
     
     def get_recommendations(self, priority, device_type, ward, attack_type, life_support):
         """Generate recommendations based on priority"""
-        recommendations = f"📋 RECOMMENDED ACTIONS FOR {priority} PRIORITY ALERT\n\n"
+        recommendations = f" RECOMMENDED ACTIONS FOR {priority} PRIORITY ALERT\n\n"
         recommendations += f"Device: {device_type} | Ward: {ward} | Attack: {attack_type}\n"
         
         if life_support:
-            recommendations += "⚕️ LIFE SUPPORT DEVICE - Extra caution required!\n\n"
+            recommendations += " LIFE SUPPORT DEVICE - Extra caution required!\n\n"
         else:
             recommendations += "\n"
         
         if priority == 'CRITICAL':
-            recommendations += "🚨 IMMEDIATE ACTIONS REQUIRED:\n"
+            recommendations += " IMMEDIATE ACTIONS REQUIRED:\n"
             recommendations += "• IMMEDIATELY isolate the device from network\n"
             recommendations += "• Alert Security Operations Center (SOC)\n"
             recommendations += "• Notify clinical staff and IT security team\n"
@@ -434,7 +434,7 @@ class AlertPrioritizationGUI:
             recommendations += "• Document all actions in incident log\n"
         
         elif priority == 'HIGH':
-            recommendations += "⚠️ PRIORITY INVESTIGATION:\n"
+            recommendations += " PRIORITY INVESTIGATION:\n"
             recommendations += "• Investigate within 15 minutes\n"
             recommendations += "• Notify Security Operations Center\n"
             recommendations += "• Prepare device isolation if threat escalates\n"
@@ -442,21 +442,21 @@ class AlertPrioritizationGUI:
             recommendations += "• Inform ward supervisor\n"
         
         elif priority == 'MEDIUM':
-            recommendations += "📊 STANDARD RESPONSE:\n"
+            recommendations += " STANDARD RESPONSE:\n"
             recommendations += "• Investigate within 30 minutes\n"
             recommendations += "• Log incident for security review\n"
             recommendations += "• Monitor device activity closely\n"
             recommendations += "• Check for similar alerts on other devices\n"
         
         elif priority == 'LOW':
-            recommendations += "ℹ️ ROUTINE MONITORING:\n"
+            recommendations += "ℹ ROUTINE MONITORING:\n"
             recommendations += "• Standard monitoring protocol\n"
             recommendations += "• Schedule review during business hours\n"
             recommendations += "• Document for trend analysis\n"
             recommendations += "• No immediate action required\n"
         
         else:  # INFO
-            recommendations += "📝 INFORMATIONAL:\n"
+            recommendations += " INFORMATIONAL:\n"
             recommendations += "• Log for information only\n"
             recommendations += "• Include in routine security report\n"
             recommendations += "• No action required\n"

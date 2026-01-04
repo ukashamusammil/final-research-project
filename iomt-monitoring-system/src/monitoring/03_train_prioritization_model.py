@@ -17,22 +17,22 @@ def train_alert_prioritization_model():
     """
     
     print("="*70)
-    print("🤖 ALERT PRIORITIZATION MODEL TRAINING")
+    print(" ALERT PRIORITIZATION MODEL TRAINING")
     print("="*70)
     
     # Load preprocessed data
-    print("\n📂 Loading preprocessed data...")
+    print("\n Loading preprocessed data...")
     X_train = pd.read_csv('../../data/processed/X_train.csv')
     X_test = pd.read_csv('../../data/processed/X_test.csv')
     y_train = pd.read_csv('../../data/processed/y_train.csv').values.ravel()
     y_test = pd.read_csv('../../data/processed/y_test.csv').values.ravel()
     
-    print(f"✅ Training samples: {len(X_train):,}")
-    print(f"✅ Testing samples: {len(X_test):,}")
-    print(f"✅ Features: {len(X_train.columns)}")
+    print(f" Training samples: {len(X_train):,}")
+    print(f" Testing samples: {len(X_test):,}")
+    print(f" Features: {len(X_train.columns)}")
     
     # Initialize model
-    print("\n🔧 Initializing Random Forest Classifier...")
+    print("\n Initializing Random Forest Classifier...")
     model = RandomForestClassifier(
         n_estimators=100,        # Number of trees
         max_depth=20,            # Maximum depth
@@ -43,42 +43,42 @@ def train_alert_prioritization_model():
         verbose=1                # Show progress
     )
     
-    print("✅ Model initialized")
+    print(" Model initialized")
     print(f"   - Trees: 100")
     print(f"   - Max depth: 20")
     print(f"   - Min samples split: 10")
     
     # Train model
-    print("\n🚀 Training model...")
+    print("\n Training model...")
     print("   (This may take 2-3 minutes...)")
     model.fit(X_train, y_train)
-    print("✅ Training complete!")
+    print(" Training complete!")
     
     # Make predictions
-    print("\n🔮 Making predictions on test set...")
+    print("\n Making predictions on test set...")
     y_pred = model.predict(X_test)
-    print("✅ Predictions complete!")
+    print(" Predictions complete!")
     
     # Evaluate
-    print("\n📊 EVALUATION RESULTS")
+    print("\n EVALUATION RESULTS")
     print("="*70)
     
     accuracy = accuracy_score(y_test, y_pred)
-    print(f"\n🎯 Overall Accuracy: {accuracy * 100:.2f}%")
+    print(f"\n Overall Accuracy: {accuracy * 100:.2f}%")
     
     # Classification report
-    print("\n📋 Detailed Classification Report:")
+    print("\n Detailed Classification Report:")
     print(classification_report(y_test, y_pred, 
                                 target_names=['CRITICAL', 'HIGH', 'INFO', 'LOW', 'MEDIUM']))
     
     # Confusion matrix
-    print("\n🔢 Confusion Matrix:")
+    print("\n Confusion Matrix:")
     cm = confusion_matrix(y_test, y_pred, 
                          labels=['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'])
     print(cm)
     
     # Plot confusion matrix
-    print("\n📊 Creating confusion matrix visualization...")
+    print("\n Creating confusion matrix visualization...")
     os.makedirs('../../results', exist_ok=True)
     
     plt.figure(figsize=(10, 8))
@@ -91,11 +91,11 @@ def train_alert_prioritization_model():
     plt.xlabel('Predicted Label', fontsize=12)
     plt.tight_layout()
     plt.savefig('../../results/04_confusion_matrix.png', dpi=300, bbox_inches='tight')
-    print("✅ Saved: results/04_confusion_matrix.png")
+    print(" Saved: results/04_confusion_matrix.png")
     plt.close()
     
     # Feature importance
-    print("\n⭐ Analyzing feature importance...")
+    print("\n Analyzing feature importance...")
     feature_importance = pd.DataFrame({
         'feature': X_train.columns,
         'importance': model.feature_importances_
@@ -114,11 +114,11 @@ def train_alert_prioritization_model():
     plt.gca().invert_yaxis()
     plt.tight_layout()
     plt.savefig('../../results/05_feature_importance.png', dpi=300, bbox_inches='tight')
-    print("\n✅ Saved: results/05_feature_importance.png")
+    print("\n Saved: results/05_feature_importance.png")
     plt.close()
     
     # Priority distribution comparison
-    print("\n📊 Creating priority distribution comparison...")
+    print("\n Creating priority distribution comparison...")
     
     priority_order = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']
     actual_counts = pd.Series(y_test).value_counts()[priority_order]
@@ -137,19 +137,19 @@ def train_alert_prioritization_model():
     plt.legend()
     plt.tight_layout()
     plt.savefig('../../results/06_priority_distribution_comparison.png', dpi=300, bbox_inches='tight')
-    print("✅ Saved: results/06_priority_distribution_comparison.png")
+    print(" Saved: results/06_priority_distribution_comparison.png")
     plt.close()
     
     # Save model
-    print("\n💾 Saving trained model...")
+    print("\n Saving trained model...")
     os.makedirs('../../models', exist_ok=True)
     model_path = '../../models/alert_prioritization_model.pkl'
     with open(model_path, 'wb') as f:
         pickle.dump(model, f)
-    print(f"✅ Model saved to: {model_path}")
+    print(f" Model saved to: {model_path}")
     
     # Save model performance metrics
-    print("\n📝 Saving performance metrics...")
+    print("\n Saving performance metrics...")
     metrics = {
         'accuracy': accuracy,
         'n_samples_train': len(X_train),
@@ -160,10 +160,10 @@ def train_alert_prioritization_model():
     
     with open('../../models/model_metrics.pkl', 'wb') as f:
         pickle.dump(metrics, f)
-    print("✅ Metrics saved to: models/model_metrics.pkl")
+    print(" Metrics saved to: models/model_metrics.pkl")
     
     # Create summary report
-    print("\n📄 Creating summary report...")
+    print("\n Creating summary report...")
     with open('../../results/model_training_summary.txt', 'w') as f:
         f.write("ALERT PRIORITIZATION MODEL - TRAINING SUMMARY\n")
         f.write("="*70 + "\n\n")
@@ -176,14 +176,14 @@ def train_alert_prioritization_model():
         for i, row in feature_importance.head(10).iterrows():
             f.write(f"  {row['feature']:30} : {row['importance']:.4f}\n")
     
-    print("✅ Summary saved to: results/model_training_summary.txt")
+    print(" Summary saved to: results/model_training_summary.txt")
     
     print("\n" + "="*70)
-    print("✅ MODEL TRAINING COMPLETE!")
+    print(" MODEL TRAINING COMPLETE!")
     print("="*70)
-    print(f"\n📊 Final Accuracy: {accuracy * 100:.2f}%")
-    print(f"📁 Model saved: models/alert_prioritization_model.pkl")
-    print(f"📊 Visualizations: results/ folder (3 new files)")
+    print(f"\n Final Accuracy: {accuracy * 100:.2f}%")
+    print(f" Model saved: models/alert_prioritization_model.pkl")
+    print(f" Visualizations: results/ folder (3 new files)")
     
     return model, accuracy
 

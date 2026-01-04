@@ -63,13 +63,13 @@ def run_demo(num_alerts=10):
     """Run real-time monitoring demo"""
     
     print("="*70)
-    print("🎬 IoMT REAL-TIME MONITORING SYSTEM - DEMO")
+    print(" IoMT REAL-TIME MONITORING SYSTEM - DEMO")
     print("="*70)
-    print("\n🔄 Initializing system...")
+    print("\n Initializing system...")
     
     # Load model
     model, encoders = load_model()
-    print("✅ Alert Prioritization Model loaded")
+    print(" Alert Prioritization Model loaded")
     
     # Load test data
     X_test = pd.read_csv('../../data/processed/X_test.csv')
@@ -79,15 +79,15 @@ def run_demo(num_alerts=10):
     attack_indices = original_df[original_df['attack_type'] != 'normal'].index
     test_attack_indices = [i for i in attack_indices if i >= 80000][:num_alerts]
     
-    print(f"✅ System ready - monitoring {num_alerts} incoming alerts\n")
+    print(f" System ready - monitoring {num_alerts} incoming alerts\n")
     print("="*70)
-    print("🔴 STARTING REAL-TIME MONITORING...")
+    print(" STARTING REAL-TIME MONITORING...")
     print("="*70)
     
     time.sleep(1)
     
     for i, idx in enumerate(test_attack_indices, 1):
-        print(f"\n\n🔔 [{i}/{num_alerts}] Processing incoming alert...")
+        print(f"\n\n [{i}/{num_alerts}] Processing incoming alert...")
         time.sleep(0.5)
         
         # Get alert data
@@ -116,11 +116,11 @@ def run_demo(num_alerts=10):
         time.sleep(1.5)
     
     print("\n" + "="*70)
-    print("✅ MONITORING DEMO COMPLETE")
+    print(" MONITORING DEMO COMPLETE")
     print("="*70)
-    print(f"\n📊 Processed {num_alerts} alerts successfully")
-    print("🎯 All alerts prioritized based on clinical impact")
-    print("🔗 Related alerts grouped into attack campaigns\n")
+    print(f"\n Processed {num_alerts} alerts successfully")
+    print(" All alerts prioritized based on clinical impact")
+    print(" Related alerts grouped into attack campaigns\n")
 
 
 if __name__ == "__main__":

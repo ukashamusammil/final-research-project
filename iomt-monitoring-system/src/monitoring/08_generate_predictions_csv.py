@@ -10,31 +10,31 @@ from datetime import datetime
 import os
 
 print("="*75)
-print("📊 GENERATING DETAILED PREDICTIONS CSV")
+print(" GENERATING DETAILED PREDICTIONS CSV")
 print("="*75)
 
 # Create output directory if it doesn't exist
 os.makedirs('../../data/processed', exist_ok=True)
 
 # Load model and data
-print("\n🔄 Loading model and data...")
+print("\n Loading model and data...")
 
 # Load trained model
 with open('../../models/alert_prioritization_model.pkl', 'rb') as f:
     model = pickle.load(f)
-print("   ✅ Model loaded")
+print(" Model loaded")
 
 # Load test data
 X_test = pd.read_csv('../../data/processed/X_test.csv')
 y_test = pd.read_csv('../../data/processed/y_test.csv').values.ravel()
-print(f"   ✅ Test data loaded ({len(X_test):,} samples)")
+print(f" Test data loaded ({len(X_test):,} samples)")
 
 # Load original dataset to get device details
 df_original = pd.read_csv('../../data/raw/esp32_iomt_dataset_realistic.csv')
-print("   ✅ Original dataset loaded")
+print(" Original dataset loaded")
 
 # Make predictions
-print("\n🔮 Making predictions on test set...")
+print("\n Making predictions on test set...")
 y_pred = model.predict(X_test)
 y_pred_proba = model.predict_proba(X_test)
 
@@ -43,10 +43,10 @@ confidence_scores = []
 for proba in y_pred_proba:
     confidence_scores.append(max(proba))
 
-print(f"   ✅ Predictions complete")
+print(f" Predictions complete")
 
 # Create results DataFrame
-print("\n📦 Creating detailed output DataFrame...")
+print("\n Creating detailed output DataFrame...")
 
 # Get test sample indices (take last samples as test set)
 test_indices = df_original.tail(len(X_test)).index
@@ -115,16 +115,16 @@ output_df = results_df[output_columns].copy()
 output_df.reset_index(drop=True, inplace=True)
 
 # Save to data/processed/ folder
-print("\n💾 Saving predictions to data/processed/ folder...")
+print("\n Saving predictions to data/processed/ folder...")
 
 # Main predictions file
 predictions_path = '../../data/processed/predictions_with_results.csv'
 output_df.to_csv(predictions_path, index=False)
-print(f"   ✅ Saved: {predictions_path}")
-print(f"   📊 Total predictions: {len(output_df):,}")
+print(f" Saved: {predictions_path}")
+print(f" Total predictions: {len(output_df):,}")
 
 # Calculate summary statistics
-print("\n📊 Generating prediction summary...")
+print("\n Generating prediction summary...")
 summary = {
     'total_predictions': len(output_df),
     'correct_predictions': (output_df['prediction_correct'] == 1).sum(),
@@ -138,7 +138,7 @@ print(f"   Incorrect Predictions: {summary['incorrect_predictions']:,}")
 print(f"   Accuracy:              {summary['accuracy']:.2f}%")
 
 # Priority-wise breakdown
-print("\n📊 Priority-wise Prediction Accuracy:")
+print("\n Priority-wise Prediction Accuracy:")
 print(f"   {'Priority':<12} {'Correct':<10} {'Total':<10} {'Accuracy':<10}")
 print(f"   {'-'*45}")
 for priority in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
@@ -151,29 +151,29 @@ for priority in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
         print(f"   {priority:<12} {correct:<10,} {total:<10,} {accuracy:>6.2f}%")
 
 # Save misclassifications separately
-print("\n❌ Extracting misclassifications...")
+print("\n Extracting misclassifications...")
 misclassified = output_df[output_df['prediction_correct'] == 0].copy()
 misclassified_path = '../../data/processed/misclassified_predictions.csv'
 misclassified.to_csv(misclassified_path, index=False)
-print(f"   ✅ Saved: {misclassified_path}")
-print(f"   📊 Misclassifications: {len(misclassified):,}")
+print(f" Saved: {misclassified_path}")
+print(f" Misclassifications: {len(misclassified):,}")
 
 # Save only correct predictions
-print("\n✅ Extracting correct predictions...")
+print("\n Extracting correct predictions...")
 correct_preds = output_df[output_df['prediction_correct'] == 1].copy()
 correct_path = '../../data/processed/correct_predictions.csv'
 correct_preds.to_csv(correct_path, index=False)
-print(f"   ✅ Saved: {correct_path}")
-print(f"   📊 Correct predictions: {len(correct_preds):,}")
+print(f" Saved: {correct_path}")
+print(f" Correct predictions: {len(correct_preds):,}")
 
 # Display sample of output
-print("\n👀 Sample Output (first 10 rows):")
+print("\n Sample Output (first 10 rows):")
 sample_cols = ['alert_id', 'device_id', 'ward', 'attack_type', 
                'actual_priority', 'predicted_priority', 'match_status']
 print(output_df[sample_cols].head(10).to_string(index=False))
 
 # Create a detailed statistics file
-print("\n📊 Creating detailed statistics report...")
+print("\n Creating detailed statistics report...")
 stats_lines = []
 stats_lines.append("="*75)
 stats_lines.append("DETAILED PREDICTION STATISTICS REPORT")
@@ -246,12 +246,12 @@ stats_lines.append(f"Misclassified Only:       {misclassified_path}")
 stats_path = '../../data/processed/prediction_statistics.txt'
 with open(stats_path, 'w') as f:
     f.write('\n'.join(stats_lines))
-print(f"   ✅ Saved: {stats_path}")
+print(f" Saved: {stats_path}")
 
 print("\n" + "="*75)
-print("✅ DETAILED PREDICTIONS CSV GENERATION COMPLETE!")
+print(" DETAILED PREDICTIONS CSV GENERATION COMPLETE!")
 print("="*75)
-print(f"\n📁 Output Files in data/processed/:")
+print(f"\n Output Files in data/processed/:")
 print(f"\n   1. predictions_with_results.csv")
 print(f"      → All predictions with results ({len(output_df):,} rows)")
 print(f"\n   2. correct_predictions.csv")
@@ -260,5 +260,5 @@ print(f"\n   3. misclassified_predictions.csv")
 print(f"      → Misclassified samples only ({len(misclassified):,} rows)")
 print(f"\n   4. prediction_statistics.txt")
 print(f"      → Detailed statistics report")
-print(f"\n🎯 Overall Accuracy: {summary['accuracy']:.2f}%")
-print(f"📊 Open the CSV files in Excel or VS Code to view!\n")
+print(f"\n Overall Accuracy: {summary['accuracy']:.2f}%")
+print(f" Open the CSV files in Excel or VS Code to view!\n")

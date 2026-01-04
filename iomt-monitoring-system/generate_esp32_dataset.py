@@ -368,18 +368,18 @@ class CustomIoMTDatasetGenerator:
     
     def generate_complete_dataset(self):
         """Generate complete dataset"""
-        print("🚀 Generating ESP32 IoMT Monitoring Dataset...")
+        print(" Generating ESP32 IoMT Monitoring Dataset...")
         print("=" * 70)
-        print("📱 ESP32 Devices: Pulse Oximeter, Temperature, Fall Detection, ECG")
+        print(" ESP32 Devices: Pulse Oximeter, Temperature, Fall Detection, ECG")
         print("=" * 70)
         
         all_data = []
         
         normal_samples = int(self.num_samples * 0.60)
-        print(f"\n📊 Generating {normal_samples:,} normal traffic samples...")
+        print(f"\n Generating {normal_samples:,} normal traffic samples...")
         normal_data = self.generate_normal_traffic(normal_samples)
         all_data.extend(normal_data)
-        print(f"   ✅ Normal traffic: {len(normal_data):,} samples")
+        print(f" Normal traffic: {len(normal_data):,} samples")
         
         attack_distribution = {
             'mqtt_injection': 0.10,
@@ -394,7 +394,7 @@ class CustomIoMTDatasetGenerator:
         
         for attack_type, percentage in attack_distribution.items():
             attack_samples = int(self.num_samples * percentage)
-            print(f"🔴 Generating {attack_samples:,} {attack_type} samples...")
+            print(f" Generating {attack_samples:,} {attack_type} samples...")
             
             if attack_type in ['firmware_exploit', 'mqtt_injection', 'ddos']:
                 critical_devices = [d for d in self.devices if d['criticality'] >= 8]
@@ -404,18 +404,18 @@ class CustomIoMTDatasetGenerator:
             
             attack_data = self.generate_attack_traffic(attack_type, attack_samples, target_devices)
             all_data.extend(attack_data)
-            print(f"   ✅ {attack_type}: {len(attack_data):,} samples")
+            print(f" {attack_type}: {len(attack_data):,} samples")
         
-        print("\n🔄 Creating DataFrame...")
+        print("\n Creating DataFrame...")
         df = pd.DataFrame(all_data)
         
-        print("🏷️  Calculating priority labels...")
+        print(" Calculating priority labels...")
         df['priority_label'] = df.apply(self.calculate_priority_label, axis=1)
         
-        print("🔗 Assigning group IDs...")
+        print(" Assigning group IDs...")
         df = self.assign_group_ids(df)
         
-        print("⚙️  Adding anomaly scores...")
+        print(" Adding anomaly scores...")
         df['network_anomaly_score'] = np.where(
             df['attack_type'] == 'normal',
             np.random.uniform(0, 0.2, len(df)),
@@ -438,39 +438,39 @@ class CustomIoMTDatasetGenerator:
             )
         )
         
-        print("🔀 Shuffling dataset...")
+        print(" Shuffling dataset...")
         df = df.sample(frac=1, random_state=42).reset_index(drop=True)
         df['alert_id'] = [f"A_{i:06d}" for i in range(len(df))]
         
         print("\n" + "=" * 70)
-        print("✅ ESP32 Dataset Generation Complete!")
+        print(" ESP32 Dataset Generation Complete!")
         print("=" * 70)
         
         return df
     
     def print_dataset_summary(self, df):
         """Print comprehensive dataset summary"""
-        print("\n📊 ESP32 IOMT DATASET SUMMARY")
+        print("\n ESP32 IOMT DATASET SUMMARY")
         print("=" * 70)
         print(f"Total Samples: {len(df):,}")
         print(f"Total Features: {len(df.columns)}")
         
-        print("\n📱 ESP32 DEVICE TYPE DISTRIBUTION:")
+        print("\n ESP32 DEVICE TYPE DISTRIBUTION:")
         print(df['device_type'].value_counts())
         
-        print("\n🔬 SENSOR TYPE DISTRIBUTION:")
+        print("\n SENSOR TYPE DISTRIBUTION:")
         print(df['sensor_type'].value_counts())
         
-        print("\n🏢 WARD DISTRIBUTION:")
+        print("\n WARD DISTRIBUTION:")
         print(df['ward'].value_counts())
         
-        print("\n🌐 PROTOCOL DISTRIBUTION:")
+        print("\n PROTOCOL DISTRIBUTION:")
         print(df['protocol'].value_counts())
         
-        print("\n🚨 ATTACK TYPE DISTRIBUTION:")
+        print("\n ATTACK TYPE DISTRIBUTION:")
         print(df['attack_type'].value_counts())
         
-        print("\n🎯 PRIORITY LABEL DISTRIBUTION:")
+        print("\n PRIORITY LABEL DISTRIBUTION:")
         priority_counts = df['priority_label'].value_counts()
         for priority in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
             count = priority_counts.get(priority, 0)
@@ -488,15 +488,15 @@ if __name__ == "__main__":
     generator.print_dataset_summary(df)
     
     output_file = 'esp32_iomt_monitoring_dataset.csv'
-    print(f"\n💾 Saving dataset to '{output_file}'...")
+    print(f"\n Saving dataset to '{output_file}'...")
     df.to_csv(output_file, index=False)
-    print(f"✅ Dataset saved successfully!")
+    print(f" Dataset saved successfully!")
     
     sample_file = 'esp32_iomt_sample_1000.csv'
     df.sample(n=min(1000, len(df)), random_state=42).to_csv(sample_file, index=False)
-    print(f"✅ Sample dataset saved to '{sample_file}'")
+    print(f" Sample dataset saved to '{sample_file}'")
     
-    print("\n👀 FIRST 5 ROWS:")
+    print("\n FIRST 5 ROWS:")
     print(df.head(5)[['alert_id', 'device_id', 'device_type', 'sensor_type', 'attack_type', 'priority_label']])
     
-    print("\n🎉 Your custom ESP32 IoMT dataset is ready!")
+    print("\n Your custom ESP32 IoMT dataset is ready!")

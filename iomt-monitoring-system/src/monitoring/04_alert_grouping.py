@@ -14,55 +14,55 @@ def analyze_alert_grouping():
     """
     
     print("="*75)
-    print("🔗 ALERT GROUPING ANALYSIS")
+    print(" ALERT GROUPING ANALYSIS")
     print("="*75)
     
     # Load predictions with results
-    print("\n📂 Loading predictions data...")
+    print("\n Loading predictions data...")
     df = pd.read_csv('../../data/processed/predictions_with_results.csv')
-    print(f"   ✅ Loaded {len(df):,} samples")
+    print(f" Loaded {len(df):,} samples")
     
     # Filter only attack traffic (attack_type != 'normal')
-    print("\n🔍 Filtering attack traffic...")
+    print("\n Filtering attack traffic...")
     attack_df = df[df['attack_type'] != 'normal'].copy()
-    print(f"   ✅ Attack samples: {len(attack_df):,}")
-    print(f"   ✅ Normal samples: {(df['attack_type'] == 'normal').sum():,}")
+    print(f" Attack samples: {len(attack_df):,}")
+    print(f" Normal samples: {(df['attack_type'] == 'normal').sum():,}")
     
     if len(attack_df) == 0:
-        print("\n❌ No attack samples found!")
+        print("\n No attack samples found!")
         return
     
     # Check if group_id exists
     if 'group_id' not in attack_df.columns or attack_df['group_id'].isna().all():
-        print("\n⚠️  Warning: No group_id found in data")
+        print("\n Warning: No group_id found in data")
         print("   Creating groups based on campaign_id...")
         
         # Use campaign_id as group identifier
         if 'campaign_id' in attack_df.columns:
             attack_df['group_id'] = attack_df['campaign_id']
         else:
-            print("❌ No campaign_id found either!")
+            print(" No campaign_id found either!")
             return
     
     # Remove NaN groups
     grouped = attack_df[attack_df['group_id'].notna()].copy()
     
     if len(grouped) == 0:
-        print("\n❌ No valid groups found!")
+        print("\n No valid groups found!")
         return
     
     # Load encoders
-    print("\n🔄 Loading label encoders...")
+    print("\n Loading label encoders...")
     try:
         with open('../../models/label_encoders.pkl', 'rb') as f:
             encoders = pickle.load(f)
-        print("   ✅ Encoders loaded")
+        print(" Encoders loaded")
     except FileNotFoundError:
-        print("❌ Encoders not found! Run 02_preprocess_data.py first")
+        print(" Encoders not found! Run 02_preprocess_data.py first")
         return
     
     # Group statistics
-    print("\n📊 Calculating group statistics...")
+    print("\n Calculating group statistics...")
     
     n_groups = grouped['group_id'].nunique()
     avg_size = len(grouped) / n_groups
@@ -71,7 +71,7 @@ def analyze_alert_grouping():
     max_size = group_sizes.max()
     min_size = group_sizes.min()
     
-    print(f"\n✅ Alert Grouping Statistics:")
+    print(f"\n Alert Grouping Statistics:")
     print(f"   Total attack alerts: {len(attack_df):,}")
     print(f"   Grouped alerts: {len(grouped):,}")
     print(f"   Number of groups: {n_groups}")
@@ -81,12 +81,12 @@ def analyze_alert_grouping():
     
     # Alert reduction
     reduction_pct = ((len(attack_df) - n_groups) / len(attack_df)) * 100
-    print(f"\n   🎯 Alert Reduction: {reduction_pct:.1f}%")
+    print(f"\n    Alert Reduction: {reduction_pct:.1f}%")
     print(f"      Security analysts see {n_groups} groups")
     print(f"      instead of {len(attack_df):,} individual alerts!")
     
     # Group by attack type
-    print("\n📊 Analyzing groups by attack type...")
+    print("\n Analyzing groups by attack type...")
     
     # Count by attack type
     attack_type_groups = grouped.groupby('attack_type').agg({
@@ -102,7 +102,7 @@ def analyze_alert_grouping():
     print(attack_type_groups.to_string())
     
     # Create results directory
-    print("\n📊 Creating visualizations...")
+    print("\n Creating visualizations...")
     os.makedirs('../../results', exist_ok=True)
     
     # ========================================
@@ -120,7 +120,7 @@ def analyze_alert_grouping():
     plt.grid(axis='y', alpha=0.3)
     plt.tight_layout()
     plt.savefig('../../results/07_group_size_distribution.png', dpi=300, bbox_inches='tight')
-    print("   ✅ Saved: results/07_group_size_distribution.png")
+    print(" Saved: results/07_group_size_distribution.png")
     plt.close()
     
     # ========================================
@@ -141,7 +141,7 @@ def analyze_alert_grouping():
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
     plt.savefig('../../results/08_attacks_by_ward_detailed.png', dpi=300, bbox_inches='tight')
-    print("   ✅ Saved: results/08_attacks_by_ward_detailed.png")
+    print(" Saved: results/08_attacks_by_ward_detailed.png")
     plt.close()
     
     # ========================================
@@ -168,7 +168,7 @@ def analyze_alert_grouping():
     plt.gca().invert_yaxis()
     plt.tight_layout()
     plt.savefig('../../results/09_top_attack_campaigns.png', dpi=300, bbox_inches='tight')
-    print("   ✅ Saved: results/09_top_attack_campaigns.png")
+    print(" Saved: results/09_top_attack_campaigns.png")
     plt.close()
     
     # ========================================
@@ -185,13 +185,13 @@ def analyze_alert_grouping():
     plt.axis('equal')
     plt.tight_layout()
     plt.savefig('../../results/10_attack_type_distribution.png', dpi=300, bbox_inches='tight')
-    print("   ✅ Saved: results/10_attack_type_distribution.png")
+    print(" Saved: results/10_attack_type_distribution.png")
     plt.close()
     
     # ========================================
     # Save grouping summary
     # ========================================
-    print("\n💾 Creating grouping summary report...")
+    print("\n Creating grouping summary report...")
     
     summary_lines = []
     summary_lines.append("="*75)
@@ -235,12 +235,12 @@ def analyze_alert_grouping():
     with open(summary_path, 'w') as f:
         f.write('\n'.join(summary_lines))
     
-    print(f"   ✅ Summary saved: {summary_path}")
+    print(f" Summary saved: {summary_path}")
     
     # ========================================
     # Save grouped alerts CSV for Basheer
     # ========================================
-    print("\n💾 Creating CSV output for Basheer (Incident Correlation)...")
+    print("\n Creating CSV output for Basheer (Incident Correlation)...")
     
     # Add group statistics to each alert
     group_stats = grouped.groupby('group_id').agg({
@@ -261,26 +261,26 @@ def analyze_alert_grouping():
     # Save for Basheer
     basheer_output = '../../data/processed/grouped_alerts_for_correlation.csv'
     grouped_with_stats.to_csv(basheer_output, index=False)
-    print(f"   ✅ Saved: {basheer_output}")
-    print(f"   📊 {len(grouped_with_stats):,} alerts in {n_groups} groups")
+    print(f" Saved: {basheer_output}")
+    print(f" {len(grouped_with_stats):,} alerts in {n_groups} groups")
     
     # Final summary
     print("\n" + "="*75)
-    print("✅ ALERT GROUPING ANALYSIS COMPLETE!")
+    print(" ALERT GROUPING ANALYSIS COMPLETE!")
     print("="*75)
-    print(f"\n📊 Results Summary:")
+    print(f"\n Results Summary:")
     print(f"   • 4 visualization charts created")
     print(f"   • 1 summary report generated")
     print(f"   • 1 CSV file for Basheer's component")
-    print(f"\n🎯 Alert Reduction: {reduction_pct:.1f}%")
+    print(f"\n Alert Reduction: {reduction_pct:.1f}%")
     print(f"   Security team workload reduced from {len(attack_df):,} to {n_groups} items!")
-    print(f"\n📁 Check results/ folder for all outputs\n")
+    print(f"\n Check results/ folder for all outputs\n")
 
 
 if __name__ == "__main__":
     try:
         analyze_alert_grouping()
     except Exception as e:
-        print(f"\n❌ Error occurred: {e}")
+        print(f"\n Error occurred: {e}")
         import traceback
         traceback.print_exc()
