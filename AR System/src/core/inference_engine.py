@@ -29,52 +29,36 @@ class InferenceEngine:
 
     def predict_action(self, event_dict):
         """
-        Input: Dict containing either Vitals ('heart_rate') or Network Threats ('threat_type')
-        Output: 'ISOLATE', 'MONITOR', 'ROLLBACK', or 'NO_ACTION'
+        Input: Dict containing Vitals + Network Stats
+        Output: 'QUARANTINE', 'ROLLBACK', 'MONITOR', 'no_action'
         """
         if not self.defense_model:
             return "MONITOR" # Fallback
 
         try:
-            # 1. NEW MODEL SCHEMA (Network Threats)
-            # Check if model expects 'threat_type' (feature of new RF model)
-            if hasattr(self.defense_model, 'feature_names_in_') and 'threat_type' in self.defense_model.feature_names_in_:
-                 data = {
-                    'threat_type': event_dict.get('threat_type', 'Normal_Heartbeat'), 
-                    'severity': event_dict.get('severity', 'None'),
-                    'confidence_score': event_dict.get('confidence_score', event_dict.get('anomaly_score', 0.0))
-                 }
-                 df = pd.DataFrame([data])
-                 return self.defense_model.predict(df)[0]
-
-            # 2. OLD MODEL SCHEMA (Vitals based)
-            # Maps simplified keys (from main.py) to Model's expected verbose keys
+            # High-Fidelity Model Features (must match training exactly)
             data = {
-                'Heart Rate (bpm)': event_dict.get('heart_rate', 0),
-                'SpO2 Level (%)': event_dict.get('spo2', 0),
-                'Systolic Blood Pressure (mmHg)': event_dict.get('bp_sys', 0),
-                'Diastolic Blood Pressure (mmHg)': event_dict.get('bp_dia', 0),
-                'Body Temperature (°C)': event_dict.get('temp', 0),
-                'Fall Detection': int(event_dict.get('fall_detected', False)),
-                'Anomaly_Score': event_dict.get('anomaly_score', 0.0)
+                'heart_rate': event_dict.get('heart_rate', 75),
+                'spo2': event_dict.get('spo2', 98),
+                'sys_bp': event_dict.get('sys_bp', 120), # Using sys_bp as per training
+                'network_latency': event_dict.get('network_latency', 20),
+                'packet_size': event_dict.get('packet_size', 500),
+                'anomaly_score': event_dict.get('anomaly_score', 0.0)
             }
             
-            # The old model expects specific columns. 
-            # If the model uses OneHot or other transformers, this might need adjustment, but for pure RF it's fine.
-            expected_features = [
-                'Heart Rate (bpm)', 'SpO2 Level (%)', 
-                'Systolic Blood Pressure (mmHg)', 'Diastolic Blood Pressure (mmHg)', 
-                'Body Temperature (°C)', 'Fall Detection',
-                'Anomaly_Score'
-            ]
+            # Map any legacy keys if they exist in event_dict
+            if 'bp_sys' in event_dict: data['sys_bp'] = event_dict['bp_sys']
             
-            df = pd.DataFrame([data], columns=expected_features)
+            # Create DataFrame with specific column order
+            columns = ['heart_rate', 'spo2', 'sys_bp', 'network_latency', 'packet_size', 'anomaly_score']
+            df = pd.DataFrame([data], columns=columns)
+            
             return self.defense_model.predict(df)[0]
 
         except Exception as e:
             logging.error(f"Prediction Error: {e}")
-            # Fail-safe logic: If anomaly is high, isolate anyway
-            if event_dict.get('anomaly_score', 0) > 0.8: return "ISOLATE"
+            # Fail-safe logic
+            if event_dict.get('anomaly_score', 0) > 0.8: return "QUARANTINE"
             return "MONITOR"
 
     def detect_phi(self, log_text):

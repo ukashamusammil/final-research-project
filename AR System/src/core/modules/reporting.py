@@ -272,6 +272,8 @@ class ReportGenerator:
         except Exception as e:
             print(f"⚠️ Cleanup Warning: {e}")
 
+        return pdf_path
+
 
 
     def _setup_charts_style(self):

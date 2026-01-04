@@ -11,8 +11,8 @@ import os
 import glob
 
 # 1. Configuration
-DATA_DIR = r"c:\Users\yasim\OneDrive - Sri Lanka Institute of Information Technology (1)\Desktop\AR System\data"
-MODEL_DIR = r"c:\Users\yasim\OneDrive - Sri Lanka Institute of Information Technology (1)\Desktop\AR System\models"
+DATA_DIR = "../../data"
+MODEL_DIR = "../../models"
 
 def load_and_merge_data():
     print("📂 Loading Datasets...")

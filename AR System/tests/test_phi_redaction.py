@@ -4,7 +4,7 @@ import sys
 import re
 
 # Add src to path to import PHI Redactor
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'core'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src', 'core'))
 from modules.redaction import PHIRedactor
 
 def test_phi_accuracy():
@@ -12,7 +12,7 @@ def test_phi_accuracy():
     print("=======================================")
     
     # 1. Load Data
-    data_path = r"c:\Users\yasim\OneDrive - Sri Lanka Institute of Information Technology (1)\Desktop\AR System\data\optimized_phi_logs.json"
+    data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'optimized_phi_logs.json')
     
     try:
         with open(data_path, 'r') as f:

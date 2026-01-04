@@ -18,7 +18,7 @@ def job():
         # Initialize compiler
         # Note: We need to ensure it finds the audit log correctly from src/core/scheduler.py -> src/core/ars_audit.log
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        log_path = os.path.join(base_dir, 'ars_audit.log')
+        log_path = os.path.join(base_dir, '..', '..', 'logs', 'ars_audit.log')
         
         reporter = ReportGenerator(log_file=log_path)
         

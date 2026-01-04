@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 import warnings
@@ -10,8 +11,11 @@ from modules.redaction import PHIRedactor
 from modules.wazuh_connector import WazuhConnector
 
 # Configure Tamper-Evident Logging
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+log_path = os.path.join(base_dir, 'logs', 'ars_audit.log')
+
 logging.basicConfig(
-    filename='ars_audit.log',
+    filename=log_path,
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     filemode='a'
@@ -20,7 +24,6 @@ logging.basicConfig(
 
 
 # JSON Logger for Wazuh Ingestion
-import os
 LOG_DIR = os.path.join(os.environ['ProgramData'], "AR_System")
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
@@ -211,50 +214,50 @@ def main():
         action = ai_brain.predict_action(event)
         print(f"   [THREAT_INTEL] AI DECISION: {action}")
         
-        if action == "ISOLATE":
-             # Case 1: New Threat
-             if device_ip not in isolated_devices:
+        # 1. IMMEDIATE QUARANTINE (Attack Confirmed by AI)
+        if action == "QUARANTINE":
+            if device_ip not in quarantined_devices:
+                print(f"   [CRITICAL] AI CONFIRMED ATTACK! Initiating Protocol...")
+                print(f"      1. ISOLATING Device {device_ip}...")
+                isolation_mgr.isolate_device(device_ip)
+                
+                print(f"      2. PERMANENT QUARANTINE Applied.")
+                quarantined_devices.add(device_ip)
+                logging.critical(f"DEVICE {device_ip} QUARANTINED (AI PREDICTION).")
+                log_to_wazuh_json("THREAT_DETECTED", "QUARANTINE", device_ip, anomaly_score, "High fidelity threat confirmed. Immediate Quarantine.")
+
+        # 2. ISOLATE / SUSPICIOUS (High Risk Score but AI unsure or explicit ISOLATE)
+        elif action == "ISOLATE" or (action == "MONITOR" and anomaly_score > 0.8):
+             if device_ip not in isolated_devices and device_ip not in quarantined_devices:
                 print(f"   [RESPONSE] EXECUTING CONTAINMENT (Temporary Isolation)...")
                 isolation_mgr.isolate_device(device_ip)
-                isolated_devices[device_ip] = time.time() # Store timestamp
+                isolated_devices[device_ip] = time.time()
                 logging.warning(f"ISOLATION TRIGGERED for {device_ip}")
-                print("      [SYS_EVENT] Deep Monitoring Active... Checking for Persistence...")
-                log_to_wazuh_json("THREAT_RESPONSE", "ISOLATE", device_ip, anomaly_score, "High Threat Detected. Isolation Triggered.")
+                log_to_wazuh_json("THREAT_RESPONSE", "ISOLATE", device_ip, anomaly_score, "High Anomaly Score. Investigating.")
 
-             # Case 2: Threat Persists while Isolated -> Move to QUARANTINE
-             elif device_ip in isolated_devices:
-                print(f"   [ESCALATION] THREAT PERSISTED during Isolation! Risk confirmed.")
-                print(f"   [QUARANTINE_OP] ESCALATING to PERMANENT QUARANTINE.")
-                quarantined_devices.add(device_ip)
-                del isolated_devices[device_ip] # Remove from temp
-                logging.critical(f"DEVICE {device_ip} QUARANTINED PERMANENTLY.")
-                log_to_wazuh_json("THREAT_ESCALATION", "QUARANTINE", device_ip, anomaly_score, "Threat persisted. Device permanently quarantined.")
-            
-        elif action == "MONITOR":
-             print(f"   [SYS_EVENT] Investigating... (Metrics suspicious but not critical)")
-             log_to_wazuh_json("THREAT_ANALYSIS", "MONITOR", device_ip, anomaly_score, "Suspicious activity. Monitoring intensified.")
-        
-        elif action == "NO_ACTION":
-            # Check if we need to Rollback (False Positive Detected)
+        # 3. ROLLBACK (False Positive Cleanup)
+        elif action == "ROLLBACK":
             if device_ip in isolated_devices:
-                isolation_start = isolated_devices[device_ip]
-                elapsed = time.time() - isolation_start
-                
-                print(f"   [RESOLVED] DETECTED SAFE STATE on Isolated Device {device_ip}!")
-                print(f"      [METRIC] Elapsed Time in Isolation: {elapsed:.2f}s (Required: 30s)")
-                
-                # Enforce 30s Delay
-                if elapsed < 30:
-                    print(f"      [POLICY_HOLD] WAIT: Policy requires 30s observation. Rollback DEFERRED.")
-                else:
-                    print(f"   [AUDIT_PASS] False Positive Confirmed. Initiating ROLLBACK...")
-                    success = isolation_mgr.rollback(device_ip)
-                    if success:
-                        del isolated_devices[device_ip]
-                        print(f"   [AUDIT_PASS] ROLLBACK COMPLETE. Device {device_ip} rejoined network.")
-                        logging.info(f"ROLLBACK EXECUTED for {device_ip}")
+                print(f"   [RESOLVED] AI Identified FALSE POSITIVE. Rolling back...")
+                success = isolation_mgr.rollback(device_ip)
+                if success:
+                    del isolated_devices[device_ip]
+                    print(f"   [AUDIT_PASS] Device {device_ip} restored to network.")
+                    logging.info(f"ROLLBACK EXECUTED for {device_ip}")
+                    log_to_wazuh_json("FALSE_POSITIVE", "ROLLBACK", device_ip, anomaly_score, "AI cleared threat. Connection restored.")
             else:
-                print("   [RESOLVED] System Normal.")
+                 print("   [INFO] AI indicates Safe/Rollback state (No action needed).")
+
+        # 4. MONITOR / SAFE
+        else:
+            if device_ip in isolated_devices:
+                # Timer based release for manually isolated devices
+                if time.time() - isolated_devices[device_ip] > 30:
+                     print(f"   [TIMER] Isolation expired. Releasing device...")
+                     isolation_mgr.rollback(device_ip)
+                     del isolated_devices[device_ip]
+            else:
+                print(f"   [OK] Monitoring Active. System Stable.")
 
 if __name__ == "__main__":
     main()

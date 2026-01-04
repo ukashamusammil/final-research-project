@@ -7,7 +7,7 @@ import joblib
 import os
 
 # 1. Load the High-Fidelity Data
-data_path = r"c:\Users\yasim\OneDrive - Sri Lanka Institute of Information Technology (1)\Desktop\AR System\data\ars_high_fidelity_training.csv"
+data_path = "../../data/ars_high_fidelity_training.csv"
 print(f"📂 Loading Dataset: {data_path}")
 
 try:
@@ -48,7 +48,7 @@ print("\n📊 Detailed Report:")
 print(classification_report(y_test, y_pred))
 
 # 6. Save Model
-model_dir = r"c:\Users\yasim\OneDrive - Sri Lanka Institute of Information Technology (1)\Desktop\AR System\models"
+model_dir = "../../models"
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
 

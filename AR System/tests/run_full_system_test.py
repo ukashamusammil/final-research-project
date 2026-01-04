@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'core'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src', 'core'))
 
 from inference_engine import InferenceEngine
 from modules.redaction import PHIRedactor
@@ -34,11 +34,11 @@ def run_tests():
         danger_event = {"heart_rate": 150, "spo2": 85, "sys_bp": 180, "anomaly_score": 0.95, "packet_size": 15000, "network_latency": 1500}
         pred_danger = engine.predict_action(danger_event)
         
-        if pred_normal in ["NO_ACTION", "MONITOR"] and pred_danger == "ISOLATE":
+        if pred_normal in ["NO_ACTION", "MONITOR"] and pred_danger == "QUARANTINE":
             print("   ✅ PASS: Correctly differentiated Safe vs Attack.")
             results["PASS"] += 1
         else:
-            print(f"   [ERROR] FAIL: AI Confusion. Normal={pred_normal}, Attack={pred_danger}")
+            print(f"   [ERROR] FAIL: AI Confusion. Normal={pred_normal}, Attack={pred_danger} (Expected QUARANTINE)")
             results["FAIL"] += 1
             
     except Exception as e:
@@ -86,13 +86,14 @@ def run_tests():
     print("\n📝 TEST 3: COMPLIANCE REPORTING (Daily Dashboard)")
     try:
         # Create a dummy log file if not exists
-        log_path = os.path.join(os.path.dirname(__file__), 'src', 'core', 'ars_audit.log')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'logs', 'ars_audit.log')
         if not os.path.exists(log_path):
              with open(log_path, 'w') as f:
                  f.write("2026-01-01 10:00:00 - INFO - ARS Started")
         
         reporter = ReportGenerator(log_file=log_path)
-        output_folder = r"c:\Users\yasim\OneDrive - Sri Lanka Institute of Information Technology (1)\Desktop\AR System\Wazuh_Admin_Portal_Reports"
+        output_folder = os.path.join(os.path.dirname(__file__), '..', 'Wazuh_Admin_Portal_Reports')
+        if not os.path.exists(output_folder): os.makedirs(output_folder)
         reporter.report_dir = output_folder
         
         pdf_file = reporter.generate_daily_report()

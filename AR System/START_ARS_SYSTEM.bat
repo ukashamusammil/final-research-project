@@ -1,6 +1,7 @@
 @echo off
 TITLE ARS SYSTEM LAUNCHER
 CLS
+cd /d "%~dp0"
 
 ECHO ==================================================
 ECHO    AUTOMATED RESPONSE SYSTEM (ARS) - LAUNCHING

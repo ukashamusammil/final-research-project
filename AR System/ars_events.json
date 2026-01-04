@@ -1,2 +1,0 @@
-{"timestamp": "2026-01-03T15:00:04", "app_name": "ARS_Defense_Core", "event_type": "THREAT_RESPONSE", "decision": "ISOLATE", "src_ip": "192.168.1.50", "anomaly_score": 0.95, "details": "High Threat Detected. Isolation Triggered."}
-{"timestamp": "2026-01-03T15:00:22", "app_name": "ARS_Defense_Core", "event_type": "THREAT_RESPONSE", "decision": "ISOLATE", "src_ip": "192.168.1.99", "anomaly_score": 0.99, "details": "High Threat Detected. Isolation Triggered."}

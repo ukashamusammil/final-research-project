@@ -43,24 +43,32 @@ for _ in range(GRAPH_SIZE):
         heart_rate = random.choice([random.randint(40, 55), random.randint(105, 120)])
         network_latency = random.randint(50, 100)
 
-    # --- SCENARIO C: ATTACK (Critical Isolation) - 30% ---
-    elif scenario_roll < 0.9:
-        label = "ISOLATE"
-        threat_type = "Ransomware_Pattern" 
-        anomaly_score = random.uniform(0.85, 1.00) # HIGH score
-        # Clearly dangerous metrics
-        network_latency = random.randint(200, 2000) # High Lag
-        packet_size = random.randint(5000, 100000) # Large Data Exfil
-        heart_rate = random.randint(130, 180) # Panic induced or sensor hack
-    
-    # --- SCENARIO D: ROLLBACK (False Positive) - 10% ---
+    # --- SCENARIO C: HIGH RISK (Initial ISOLATE -> Final Verification) - 40% ---
     else:
-        label = "ROLLBACK"
-        threat_type = "False_Positive_Glitch"
-        anomaly_score = random.uniform(0.1, 0.2) # Low Score but weird header
-        # Glitchy but safe vitals
-        heart_rate = 0 # Sensor disconnect often looks like 0
-        spo2 = 0
+        # High Anomaly Score triggers ISOLATION immediately.
+        # Then, external verification determines if it's Real (QUARANTINE) or False Positive (ROLLBACK).
+        
+        anomaly_score = random.uniform(0.80, 1.00) # HIGH score -> Triggers ISOLATE
+        
+        # Sub-case: Real Attack (75% of High Risk)
+        if random.random() < 0.75:
+            label = "QUARANTINE" # Final confirmed action
+            threat_type = "Ransomware_Pattern" 
+            # Clearly dangerous metrics justifying Quarantine
+            network_latency = random.randint(200, 2000) # High Lag
+            packet_size = random.randint(5000, 100000) # Large Data Exfil
+            heart_rate = random.randint(130, 180) # Panic induced
+            
+        # Sub-case: False Positive / Glitch (25% of High Risk)
+        else:
+            label = "ROLLBACK" # Final confirmed action
+            threat_type = "False_Positive_Glitch"
+            # Glitchy headers but actual traffic/vitals might be oddly normal or just missing
+            # The key diff is: High Anomaly Score BUT Low/Normal Network stats often hints at sensor error vs network attack
+            network_latency = random.randint(20, 50) # Normal Latency (contradicts anomaly score)
+            packet_size = random.randint(500, 800) # Normal Packet Size
+            heart_rate = 0 # Sensor disconnect often looks like 0 (Device Glitch)
+            spo2 = 0
 
     # 3. Add to Dataset
     data.append({
@@ -80,14 +88,14 @@ print("📉 Injecting 3% Noise to adjust accuracy target...")
 for row in data:
     if random.random() < 0.035: # 3.5% Noise
         # Swap label to a random other one
-        options = ["NO_ACTION", "MONITOR", "ISOLATE", "ROLLBACK"]
+        options = ["NO_ACTION", "MONITOR", "QUARANTINE", "ROLLBACK"]
         if row['ACTION_LABEL'] in options:
             options.remove(row['ACTION_LABEL'])
         row['ACTION_LABEL'] = random.choice(options)
 
 # 5. Save
 df = pd.DataFrame(data)
-output_path = "c:\\Users\\yasim\\OneDrive - Sri Lanka Institute of Information Technology (1)\\Desktop\\AR System\\data\\ars_high_fidelity_training.csv"
+output_path = "../../data/ars_high_fidelity_training.csv"
 df.to_csv(output_path, index=False)
 
 print(f"✅ SUCCESS: {output_path}")
