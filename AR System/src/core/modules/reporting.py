@@ -25,37 +25,67 @@ class ReportGenerator:
 
     def parse_logs(self):
         """
-        Parses the ars_audit.log file.
+        Parses the log file (Text or JSON).
         """
         data = []
         if not os.path.exists(self.log_file):
             print("[FAIL] No log file found.")
             return pd.DataFrame()
 
+        import json
+        
         with open(self.log_file, 'r') as f:
             for line in f:
                 try:
-                    parts = line.strip().split(' - ')
-                    if len(parts) < 3: continue
+                    line = line.strip()
+                    if not line: continue
                     
-                    timestamp_str = parts[0].split(',')[0]
-                    level = parts[1]
-                    message = " ".join(parts[2:])
-                    
-                    category = "INFO"
-                    if "[ALERT] ISOLATION TRIGGERED" in message: category = "ISOLATION"
-                    elif "[SUCCESS] ROLLBACK EXECUTED" in message: category = "ROLLBACK"
-                    elif "[CRITICAL] QUARANTINED PERMANENTLY" in message: category = "QUARANTINE"
-                    elif "Redacted log" in message: category = "PHI_REDACTION"
-                    elif "System Startup" in message: category = "SYSTEM"
-                    
-                    data.append({
-                        'Timestamp': pd.to_datetime(timestamp_str),
-                        'Level': level,
-                        'Category': category,
-                        'Message': message
-                    })
-                except: continue
+                    # A. Handle JSON Logs (Dashboard)
+                    if self.log_file.endswith('.json'):
+                        entry = json.loads(line)
+                        
+                        # Map JSON fields to Report Columns
+                        ts = entry.get('timestamp', datetime.now())
+                        evt_type = entry.get('event_type', 'INFO')
+                        decision = entry.get('decision', 'MONITOR')
+                        msg = entry.get('log', '')
+                        
+                        category = "INFO"
+                        if evt_type == 'DANGER': category = "CRITICAL"
+                        if evt_type == 'PRIVACY_ALERT': category = "PHI_REDACTION"
+                        if decision == "QUARANTINE": category = "QUARANTINE"
+                        if decision == "ROLLBACK": category = "ROLLBACK"
+                        
+                        data.append({
+                            'Timestamp': pd.to_datetime(ts),
+                            'Level': evt_type,
+                            'Category': category,
+                            'Message': msg
+                        })
+                        
+                    # B. Handle Legacy Text Logs
+                    else:
+                        parts = line.split(' - ')
+                        if len(parts) < 3: continue
+                        
+                        timestamp_str = parts[0].split(',')[0]
+                        level = parts[1]
+                        message = " ".join(parts[2:])
+                        
+                        category = "INFO"
+                        if "[ALERT] ISOLATION TRIGGERED" in message: category = "ISOLATION"
+                        elif "[SUCCESS] ROLLBACK EXECUTED" in message: category = "ROLLBACK"
+                        elif "[CRITICAL] QUARANTINED PERMANENTLY" in message: category = "QUARANTINE"
+                        elif "Redacted log" in message: category = "PHI_REDACTION"
+                        
+                        data.append({
+                            'Timestamp': pd.to_datetime(timestamp_str),
+                            'Level': level,
+                            'Category': category,
+                            'Message': message
+                        })
+                except Exception as e: 
+                    continue
 
         return pd.DataFrame(data)
 

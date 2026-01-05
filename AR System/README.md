@@ -35,6 +35,27 @@ AR System/
 ├── data/               # Datasets for training & testing
 ├── models/             # Trained AI models (.pkl)
 ├── results/            # Generated reports & logs
+### 3. Unified Architecture (Phase 5)
+The **AR System** and **IoMT Monitoring System** have been merged into a single, cohesive platform.
+
+1.  **Dual-Core Backend**:
+    *   **Core A (AR Security)**: Handles network threats (DDoS, Intrusion) and automated response (Isolation, Rollback).
+    *   **Core B (IoMT AI)**: Analyzes patient device vitals (Pulse Oximeters, ECG) using Random Forest models to predict criticality.
+
+2.  **Single Dashboard**:
+    *   Both systems report to the same frontend `http://localhost:5173`.
+    *   **AR Data**: Visible in the "Live Network" chart and "Security Events" log.
+    *   **IoMT Data**: Visible in the **"AI THREAT LEVEL"** widget (Top Right).
+
+## 🚀 How to Run
+You **do not** need to run separate scripts. The "Nuclear" launcher handles everything:
+
+```powershell
+.\fix_and_launch.bat
+```
+This single command triggers:
+1.  Python Backend (hosting *both* AR and IoMT logic).
+2.  React Frontend (displaying *both* data streams).
 ├── run_full_system_test.py  # Validation suite
 └── requirements.txt    # Python dependencies
 ```

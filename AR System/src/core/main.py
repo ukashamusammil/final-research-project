@@ -29,25 +29,46 @@ if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 JSON_LOG_FILE = os.path.join(LOG_DIR, "ars_events.json")
 
+# Dashboard Real-Time Feed
+DASHBOARD_LOG = os.path.join(base_dir, 'logs', 'ars_events.json')
+
 def log_to_wazuh_json(event_type, decision, ip, score, details):
     """
     Writes a structured JSON log that Wazuh agent can pick up natively.
+    AND mirrors it to the Dashboard local log for visualization.
     """
+    # 1. Wazuh Entry
     log_entry = {
-        # "timestamp": REMOVED - Letting Wazuh Server assign arrival time (fixes 2026 vs 2025 mismatch)
         "app_name": "ARS_Defense_Core",
-        "event_type": event_type,  # e.g., THREAT_DETECTED, PRIVACY_ALERT
-        "decision": decision,      # e.g., ISOLATE, MONITOR
+        "event_type": event_type, 
+        "decision": decision,      
         "src_ip": ip,
         "anomaly_score": score,
         "details": details,
         "top_features": ["Heart_Rate", "SpO2"] if event_type == "THREAT_DETECTED" else ["None"]
     }
     
-    # Write to a dedicated JSON log file (simulating a 'log' for the agent to watch)
+    # 2. Dashboard Entry (Enhanced for UI)
+    dashboard_entry = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "event_type": "DANGER" if decision in ["ISOLATE", "QUARANTINE"] else "INFO", # Map for UI color
+        "original_type": event_type,
+        "decision": decision,
+        "src_ip": ip,
+        "anomaly_score": score,
+        "message": details,
+        "details": f"AI Decision: {decision}"
+    }
+
     try:
+        # Write to System Log (Wazuh)
         with open(JSON_LOG_FILE, "a") as f:
             f.write(json.dumps(log_entry) + "\n")
+            
+        # Write to Dashboard Log
+        with open(DASHBOARD_LOG, "a") as f:
+            f.write(json.dumps(dashboard_entry) + "\n")
+            
     except Exception as e:
         print(f"[ERROR] Could not write to log file: {e}")
 
@@ -209,6 +230,8 @@ def main():
             redacted_text = phi_guard.redact_log(event['log'])
             print(f"      REDACTED LOG: {redacted_text}")
             logging.info(f"Redacted log for {device_ip}: {redacted_text}")
+            # SEND TO DASHBOARD (Privacy Vault)
+            log_to_wazuh_json("PRIVACY_ALERT", "REDACTED", device_ip, 0.0, f"PHI Detected & Redacted: {redacted_text}")
             
         # B. THREAT RESPONSE (Defense Core)
         action = ai_brain.predict_action(event)
