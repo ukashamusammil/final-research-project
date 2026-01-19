@@ -17,5 +17,7 @@ Thumbs.db
 .vscode/
 .idea/
 
-data/raw/
+# Dataset (stored on OneDrive)
+data/
+
 
