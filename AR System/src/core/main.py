@@ -9,6 +9,7 @@ from inference_engine import InferenceEngine
 from modules.containment import IsolationManager
 from modules.redaction import PHIRedactor
 from modules.wazuh_connector import WazuhConnector
+import queue
 
 # Configure Tamper-Evident Logging
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,7 +25,7 @@ logging.basicConfig(
 
 
 # JSON Logger for Wazuh Ingestion
-LOG_DIR = os.path.join(os.environ['ProgramData'], "AR_System")
+LOG_DIR = os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), "AR_System")
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 JSON_LOG_FILE = os.path.join(LOG_DIR, "ars_events.json")
@@ -73,6 +74,11 @@ def log_to_wazuh_json(event_type, decision, ip, score, details):
         print(f"[ERROR] Could not write to log file: {e}")
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="MedGuard-X AI Core")
+    parser.add_argument('--mode', type=str, help="Operation Mode: 1 (Simulated), 2 (Wazuh), 3 (CSV Replay), 4 (Real-time MQTT)")
+    args = parser.parse_args()
+
     print("[SYS_EVENT] STARTING AUTOMATED RESPONSE SYSTEM (ARS) - DEFENSE CORE")
     print("=========================================================")
     
@@ -83,17 +89,82 @@ def main():
     
     logging.info("ARS System Startup. Models loaded. Waiting for events...")
     
-    # 2. Configure Event Source
-    # Check if user wants to use Live Wazuh Data or Simulation
-    print("\n[CONFIG] Select Operation Mode:")
-    print("   [1] Simulation Mode (Pre-defined scenarios)")
-    print("   [2] Live Wazuh Integration (Real-time API)")
-    print("   [3] Full Dataset Replay (High Fidelity CSV)")
-    mode = input("Enter selection [1/2/3]: ").strip()
+    mode = args.mode
+    if not mode:
+        # 2. Configure Event Source
+        print("\n[CONFIG] Select Operation Mode:")
+        print("   [1] Simulation Mode (Pre-defined scenarios)")
+        print("   [2] Live Wazuh Integration (Real-time API)")
+        print("   [3] Full Dataset Replay (High Fidelity CSV)")
+        print("   [4] Real-Time MQTT Devices (Local Devices)")
+        mode = input("Enter selection [1/2/3/4]: ").strip()
 
     event_stream = []
+    mqtt_queue = queue.Queue()
     
-    if mode == "3":
+    if mode == "4":
+        try:
+            import paho.mqtt.client as mqtt
+        except ImportError:
+            print("[ERROR] paho-mqtt is not installed. Please run: pip install paho-mqtt")
+            return
+
+        MQTT_BROKER = "127.0.0.1"
+        MQTT_PORT = 1883
+        MQTT_TOPIC = "hospital/iomt/#"
+
+        def on_connect(client, userdata, flags, rc):
+            if rc == 0:
+                print(f"[MQTT] Connected successfully to Mosquitto MQTT Broker ({MQTT_BROKER}:{MQTT_PORT})")
+                client.subscribe(MQTT_TOPIC)
+                print(f"[MQTT] Listening for real device data on topic: {MQTT_TOPIC}")
+            else:
+                print(f"[ERROR] Failed to connect to MQTT broker, return code {rc}")
+
+        def on_message(client, userdata, msg):
+            try:
+                # Expecting JSON payload from devices
+                payload = json.loads(msg.payload.decode('utf-8'))
+                
+                # Standardize incoming fields if missing
+                event = {
+                    "device_ip": payload.get('device_ip', payload.get('ip', f"Unknown-{msg.topic}")),
+                    "heart_rate": payload.get('heart_rate', payload.get('hr', 75)),
+                    "spo2": payload.get('spo2', 98),
+                    "sys_bp": payload.get('sys_bp', payload.get('bp', 120)),
+                    "network_latency": payload.get('network_latency', 20),
+                    "packet_size": payload.get('packet_size', 500),
+                    "anomaly_score": payload.get('anomaly_score', 0.0),
+                    "log": payload.get('log', f"Data received from topic {msg.topic}"),
+                }
+                
+                # Queue the event for the AI Core to process main thread safely
+                mqtt_queue.put(event)
+                
+            except Exception as e:
+                print(f"[MQTT ERROR] Invalid payload on {msg.topic}: {e} -> {msg.payload}")
+
+        client = mqtt.Client()
+        client.on_connect = on_connect
+        client.on_message = on_message
+
+        try:
+            client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            client.loop_start()  # Start network loop in background thread
+        except Exception as e:
+            print(f"[ERROR] Could not start MQTT client: {e}")
+            return
+            
+        # event_stream in Mode 4 will be dynamic from the mqtt_queue
+        def mqtt_stream():
+            while True:
+                # Block until we get a real device payload
+                event = mqtt_queue.get() 
+                yield event
+                
+        event_stream = mqtt_stream()
+
+    elif mode == "3":
         import csv
         # Path to data folder (up 2 levels from src/core)
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -138,8 +209,6 @@ def main():
         connector = WazuhConnector(wazuh_ip, wazuh_user, wazuh_pass)
         if connector.authenticate():
             print("[SYS_EVENT] Connected to Wazuh Manager. Listening for alerts...")
-            # For this simple loop, we'll wrap get_alerts in a generator or just loop
-            # Here we define a simple generator for the main loop
             def live_stream():
                 # Hybrid Mode:
                 # 1. We start by showing steady 'Heartbeats' from the Real Wazuh Agent.
@@ -177,7 +246,6 @@ def main():
 
     else:
         # Simulation Mode (Default or Mode 1)
-        # Simulation Mode
         event_stream = [
         # Event 1: Normal Heartbeat
         {"device_ip": "192.168.1.50", "heart_rate": 75, "spo2": 98, "anomaly_score": 0.1, "log": "Patient P-123 stable."},
@@ -192,7 +260,6 @@ def main():
         # Event 5: Threat Persists (Should Trigger Quarantine)
         {"device_ip": "192.168.1.99", "heart_rate": 122, "spo2": 84, "anomaly_score": 0.99, "log": "Encryption process active."},
         # Event 6: Ignored Data (Should be skipped)
-        # Event 6: Ignored Data (Should be skipped)
         {"device_ip": "192.168.1.99", "heart_rate": 0, "spo2": 0, "anomaly_score": 0.0, "log": "Trying to reconnect..."},
         
         # --- USER VALIDATION TEST ---
@@ -202,7 +269,6 @@ def main():
     
     
     # Track states
-    # isolated_devices = {}   # Dictionary: {ip: timestamp_of_isolation}
     isolated_devices = {}
     quarantined_devices = set()   # Permanent Quarantine
 
@@ -221,8 +287,9 @@ def main():
         # Speed up simulation for CSV Replay (Mode 3)
         if mode == "3":
             time.sleep(0.1) # Fast replay
-        else:
-            time.sleep(1)   # Normal demo speed
+        elif mode != "4":
+            time.sleep(1)   # Normal demo speed for modes 1 and 2
+        # In mode 4, we don't artificially sleep because we wait on the queue.get()
         
         # A. PRIVACY CHECK (PHI Redaction)
         if 'log' in event and phi_guard.has_regex_phi(event['log']):

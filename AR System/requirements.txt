@@ -4,3 +4,4 @@ requests
 watchdog
 joblib
 scikit-learn
+paho-mqtt

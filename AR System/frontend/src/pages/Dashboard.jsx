@@ -37,39 +37,84 @@ const Dashboard = () => {
     const [threatLevel, setThreatLevel] = useState('LOW'); // Added threatLevel state
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 1. Fetch Traffic Stream
-                const trafficRes = await fetch('http://localhost:5000/api/traffic');
-                const trafficJson = await trafficRes.json();
+        let ws;
 
-                setTrafficData(prev => {
-                    const newData = [...prev, {
-                        time: trafficJson.time,
-                        cpu: trafficJson.cpu_load,
-                        packets: trafficJson.packets
-                    }];
-                    return newData.slice(-20); // Keep last 20
-                });
+        const connectWebSocket = () => {
+            ws = new WebSocket('ws://localhost:8000/ws');
 
-                // Update IoMT (Automated)
-                if (trafficJson.iomt) {
-                    setIomtPrio(trafficJson.iomt.priority);
-                    setThreatLevel(trafficJson.iomt.threat_level || 'LOW'); // Assuming iomt has threat_level
+            ws.onopen = () => {
+                console.log("Connected to SIEM Backend");
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+
+                if (msg.type === "new_log") {
+                    // New telemetry data from ESP32
+                    setTrafficData(prev => {
+                        const mainMetric = msg.data.heart_rate_bpm_pulse || msg.data.heart_rate_bpm_ecg || msg.data.temperature_celsius || 0;
+                        const secMetric = msg.data.ppg_raw_value || msg.data.ecg_raw_value || 0;
+                        const newData = [...prev, {
+                            name: new Date().toLocaleTimeString(),
+                            cpu: Number(mainMetric), // ensure number for graph
+                            packets: Number(secMetric)
+                        }];
+                        return newData.slice(-40); // show a slightly wider history window
+                    });
+
+                    if (msg.data.criticality_tier) {
+                        setIomtPrio(msg.data.criticality_tier);
+                    }
                 }
+                else if (msg.type === "new_response") {
+                    // New Automated Action taken by Engine
+                    setMetrics(prev => ({
+                        ...prev,
+                        total_events: prev.total_events + 1,
+                        active_threats: msg.data.severity === "CRITICAL" ? prev.active_threats + 1 : prev.active_threats,
+                        quarantined: msg.data.action_taken === "PERMANENT QUARANTINE" ? prev.quarantined + 1 : prev.quarantined,
+                        temp_isolate: msg.data.action_taken === "TEMPORARY ISOLATION" ? prev.temp_isolate + 1 : prev.temp_isolate,
+                        recent_alerts: [{
+                            timestamp: new Date().toLocaleTimeString(),
+                            event_type: msg.data.severity === "CRITICAL" || msg.data.severity === "HIGH" ? "DANGER" : "INFO",
+                            ...msg.data
+                        }, ...prev.recent_alerts].slice(0, 50)
+                    }));
+                }
+                else if (msg.type === "history") {
+                    // Initial history load
+                    const history = msg.data.map(log => {
+                        const mainMetric = log.heart_rate_bpm_pulse || log.heart_rate_bpm_ecg || log.temperature_celsius || 0;
+                        const secMetric = log.ppg_raw_value || log.ecg_raw_value || 0;
+                        return {
+                            name: new Date(Number(log.timestamp) * 1000 || Date.now()).toLocaleTimeString(),
+                            cpu: Number(mainMetric),
+                            packets: Number(secMetric)
+                        };
+                    });
+                    setTrafficData(history);
+                }
+                else if (msg.type === "response_history") {
+                    const historyAlerts = msg.data.map(alert => ({
+                        timestamp: new Date(alert.timestamp || Date.now()).toLocaleTimeString(),
+                        event_type: alert.severity === "CRITICAL" || alert.severity === "HIGH" ? "DANGER" : "INFO",
+                        ...alert
+                    }));
+                    setMetrics(prev => ({ ...prev, recent_alerts: historyAlerts }));
+                }
+            };
 
-                // 2. Fetch Aggregated Stats & Alerts
-                const statsRes = await fetch('http://localhost:5000/api/stats');
-                const statsJson = await statsRes.json();
-                setMetrics(statsJson);
-
-            } catch (err) {
-                console.error("Dash API Error:", err);
-            }
+            ws.onclose = () => {
+                console.log("Disconnected from SIEM. Retrying in 3s...");
+                setTimeout(connectWebSocket, 3000);
+            };
         };
 
-        const interval = setInterval(fetchData, 1000);
-        return () => clearInterval(interval);
+        connectWebSocket();
+
+        return () => {
+            if (ws) ws.close();
+        };
     }, []);
 
     const handleAddDevice = async () => {
@@ -298,8 +343,8 @@ const Dashboard = () => {
 
                                 <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
 
-                                <Area yAxisId="left" type="monotone" dataKey="cpu" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} name="System Load %" />
-                                <Area yAxisId="right" type="monotone" dataKey="packets" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} name="Packets/s" />
+                                <Area yAxisId="left" type="monotone" dataKey="cpu" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} name="Heart Rate (bpm)" />
+                                <Area yAxisId="right" type="monotone" dataKey="packets" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} name="PPG Value" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
